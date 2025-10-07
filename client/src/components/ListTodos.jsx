@@ -189,32 +189,45 @@ const ListTodos = () => {
                 </button>
             </div>
 
-            {/* Bulk Delete / Delete Page Buttons */}
+            {/* Bulk Delete / Delete Page / Deselect Buttons */}
             <div className="container mb-2">
                 {/* Delete This Page Button */}
                 {currentTodos.length > 0 && (
                     <button
                         className="btn btn-danger me-2"
                         onClick={() => {
-                            setCheckedTodos(currentTodos.map(todo => todo.todo_id));
+                            setCheckedTodos(currentTodos.map(todo => todo.todo_id)); // select current page todos
                             setDeleteMode("page");
                             setShowModal(true);
                         }}
                     >
-                        Delete This Page Todos
+                        Delete This Page
                     </button>
                 )}
 
                 {/* Delete Selected Button */}
                 {checkedTodos.length > 0 && (
                     <button
-                        className="btn btn-danger"
+                        className="btn btn-danger me-2"
                         onClick={() => {
                             setDeleteMode("bulk");
                             setShowModal(true);
                         }}
                     >
                         Delete Selected ({checkedTodos.length})
+                    </button>
+                )}
+
+                {/* Deselect All Button */}
+                {checkedTodos.length > 0 && (
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                            setCheckedTodos([]); // clear all selections
+                            setSelectAll(false); // uncheck the "Select All" checkbox
+                        }}
+                    >
+                        Deselect All
                     </button>
                 )}
             </div>
@@ -240,7 +253,6 @@ const ListTodos = () => {
                                 }}
                             />
                         </th>
-
                         <th>Description</th>
                         <th>Edit</th>
                         <th>Delete</th>
