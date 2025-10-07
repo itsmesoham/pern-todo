@@ -14,13 +14,20 @@ const ListTodos = () => {
     // Search state
     const [searchTerm, setSearchTerm] = useState("");
 
+    // Sort state: null = default, "asc" = A-Z, "desc" = Z-A
+    const [sortOrder, setSortOrder] = useState(null);
+
+    // State for checked todos
+    const [checkedTodos, setCheckedTodos] = useState([]); // store todo_id of selected todos
+    const [selectAll, setSelectAll] = useState(false); // for "Select All" checkbox
+
     // Fetch all todos
     const getTodos = async () => {
         try {
             const response = await fetch("http://localhost:5000/todos");
             const jsonData = await response.json();
 
-            // Sort by updated_at descending so newest/updated first
+            // Default sort by updated_at descending
             jsonData.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
             setTodos(jsonData);
@@ -29,14 +36,18 @@ const ListTodos = () => {
         }
     };
 
-    // Delete a todo
-    const deleteTodo = async (id) => {
+    // Delete todo(s)
+    const deleteTodos = async (ids) => {
         try {
-            await fetch(`http://localhost:5000/todos/${id}`, {
-                method: "DELETE",
-            });
-
-            setTodos(todos.filter((todo) => todo.todo_id !== id));
+            await Promise.all(
+                ids.map((id) =>
+                    fetch(`http://localhost:5000/todos/${id}`, { method: "DELETE" })
+                )
+            );
+            // Remove all deleted todos from state at once
+            setTodos((prevTodos) =>
+                prevTodos.filter((todo) => !ids.includes(todo.todo_id))
+            );
         } catch (err) {
             console.error(err.message);
         }
@@ -101,11 +112,22 @@ const ListTodos = () => {
     }, [showModal]);
 
     // Filter todos by search term
-    const filteredTodos = todos.filter((todo) =>
+    let filteredTodos = todos.filter((todo) =>
         todo.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Pagination logic (applied on filtered todos)
+    // Apply sorting on filtered todos
+    if (sortOrder === "asc") {
+        filteredTodos.sort((a, b) =>
+            a.description.toLowerCase() > b.description.toLowerCase() ? 1 : -1
+        );
+    } else if (sortOrder === "desc") {
+        filteredTodos.sort((a, b) =>
+            a.description.toLowerCase() < b.description.toLowerCase() ? 1 : -1
+        );
+    }
+
+    // Pagination logic (applied on filtered + sorted todos)
     const indexOfLastTodo = currentPage * todosPerPage;
     const indexOfFirstTodo = indexOfLastTodo - todosPerPage;
     const currentTodos = filteredTodos.slice(indexOfFirstTodo, indexOfLastTodo);
@@ -114,8 +136,8 @@ const ListTodos = () => {
     return (
         <Fragment>
             {/* Search Input with Clear Button */}
-            <div className="container mt-4 d-flex justify-content-center">
-                <div className="input-group mb-3" style={{ width: "50%" }}>
+            <div className="container mt-2 d-flex justify-content-center">
+                <div className="input-group mb-2" style={{ width: "50%" }}>
                     <input
                         type="text"
                         className="form-control"
@@ -141,10 +163,63 @@ const ListTodos = () => {
                 </div>
             </div>
 
+            {/* Sort Buttons */}
+            <div className="container d-flex justify-content-center mb-1">
+                <div className="me-2">Description Sorting:</div>
+                <button
+                    className={`btn btn-outline-primary btn-sm me-2 ${sortOrder === "asc" ? "active" : ""}`}
+                    onClick={() => setSortOrder("asc")}
+                >
+                    Ascending (A → Z)
+                </button>
+                <button
+                    className={`btn btn-outline-primary btn-sm me-2 ${sortOrder === "desc" ? "active" : ""}`}
+                    onClick={() => setSortOrder("desc")}
+                >
+                    Descending (Z → A)
+                </button>
+                <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => setSortOrder(null)}
+                >
+                    Reset
+                </button>
+            </div>
+
+            {/* Bulk Delete Button */}
+            {checkedTodos.length > 0 && (
+                <div className="container mb-2">
+                    <button
+                        className="btn btn-danger"
+                        onClick={() => setShowModal(true)}
+                    >
+                        Delete Selected ({checkedTodos.length})
+                    </button>
+                </div>
+            )}
+
             {/* Todo Table */}
-            <table className="table mt-3 text-center">
+            <table className="table mt-2 text-center">
                 <thead>
                     <tr>
+                        <th>
+                            <input
+                                type="checkbox"
+                                checked={selectAll}
+                                onChange={(e) => {
+                                    const isChecked = e.target.checked;
+                                    setSelectAll(isChecked);
+
+                                    if (isChecked) {
+                                        // add all todos (from filtered list) to checkedTodos
+                                        setCheckedTodos(filteredTodos.map((todo) => todo.todo_id));
+                                    } else {
+                                        setCheckedTodos([]);
+                                    }
+                                }}
+                            />
+                        </th>
+
                         <th>Description</th>
                         <th>Edit</th>
                         <th>Delete</th>
@@ -152,10 +227,28 @@ const ListTodos = () => {
                         <th>Updated At</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {currentTodos.length > 0 ? (
                         currentTodos.map((todo) => (
                             <tr key={todo.todo_id}>
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={checkedTodos.includes(todo.todo_id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setCheckedTodos([...checkedTodos, todo.todo_id]);
+                                            } else {
+                                                setCheckedTodos(
+                                                    checkedTodos.filter((id) => id !== todo.todo_id)
+                                                );
+                                                setSelectAll(false); // uncheck selectAll if any todo is unchecked
+                                            }
+                                        }}
+                                    />
+
+                                </td>
                                 <td>{todo.description}</td>
                                 <td>
                                     <EditTodo todo={todo} getTodos={getTodos} />{" "}
@@ -178,7 +271,7 @@ const ListTodos = () => {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="5" className="text-muted">
+                            <td colSpan="6" className="text-muted">
                                 No todos found.
                             </td>
                         </tr>
@@ -239,19 +332,31 @@ const ListTodos = () => {
                                     />
                                 </div>
                                 <div className="modal-body">
-                                    <p>Are you sure you want to delete this todo?</p>
+                                    <p>Are you sure you want to delete this/these todo(s)?</p>
                                 </div>
                                 <div className="modal-footer">
                                     <button
                                         ref={deleteBtnRef}
                                         className="btn btn-danger"
                                         onClick={() => {
-                                            deleteTodo(selectedTodo);
-                                            setShowModal(false);
+                                            if (checkedTodos.length > 0) {
+                                                // Bulk delete
+                                                deleteTodos(checkedTodos).then(() => {
+                                                    setCheckedTodos([]);
+                                                    setSelectAll(false);
+                                                    setShowModal(false);
+                                                });
+                                            } else if (selectedTodo) {
+                                                // Single delete
+                                                deleteTodo(selectedTodo);
+                                                setShowModal(false);
+                                            }
                                         }}
                                     >
                                         Delete
                                     </button>
+
+
                                     <button
                                         className="btn btn-secondary"
                                         onClick={() => setShowModal(false)}
