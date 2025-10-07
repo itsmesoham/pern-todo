@@ -8,6 +8,13 @@ const EditTodo = ({ todo, getTodos }) => {
     // Edit Todo description function
     const updateDescription = async (e) => {
         e.preventDefault();
+
+        // Prevent update if description is unchanged or only spaces
+        if (description.trim() === todo.description.trim()) {
+            console.log("No change detected — skipping update");
+            return;
+        }
+        
         try {
             const body = { description };
             await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {

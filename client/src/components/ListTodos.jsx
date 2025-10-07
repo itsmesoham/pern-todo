@@ -5,25 +5,16 @@ const ListTodos = () => {
     const [todos, setTodos] = useState([]);
     const [selectedTodo, setSelectedTodo] = useState(null); // store the todo to delete
     const [showModal, setShowModal] = useState(false); // control modal
-    const cancelBtnRef = useRef(null); // reference to Cancel button
     const deleteBtnRef = useRef(null); // reference to Delete button
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const todosPerPage = 7; // number of todos per page
 
-    const deleteTodo = async (id) => {
-        try {
-            await fetch(`http://localhost:5000/todos/${id}`, {
-                method: "DELETE",
-            });
+    // Search state
+    const [searchTerm, setSearchTerm] = useState("");
 
-            setTodos(todos.filter((todo) => todo.todo_id !== id));
-        } catch (err) {
-            console.error(err.message);
-        }
-    };
-
+    // Fetch all todos
     const getTodos = async () => {
         try {
             const response = await fetch("http://localhost:5000/todos");
@@ -38,23 +29,41 @@ const ListTodos = () => {
         }
     };
 
+    // Delete a todo
+    const deleteTodo = async (id) => {
+        try {
+            await fetch(`http://localhost:5000/todos/${id}`, {
+                method: "DELETE",
+            });
+
+            setTodos(todos.filter((todo) => todo.todo_id !== id));
+        } catch (err) {
+            console.error(err.message);
+        }
+    };
+
     useEffect(() => {
         getTodos();
     }, []);
 
-    // Focus Cancel button and handle Enter/Tab when modal is open
+    // Handle modal keyboard navigation
     useEffect(() => {
         if (!showModal) return;
 
         const modal = document.querySelector(".modal.show.d-block");
-
-        // Focus Cancel button by default
-        cancelBtnRef.current?.focus();
+        deleteBtnRef.current?.focus(); // Focus Delete button by default
 
         const handleKeyDown = (e) => {
             const focusableEls = modal.querySelectorAll(
                 "button, [tabindex]:not([tabindex='-1'])"
             );
+
+            // ESC closes the modal
+            if (e.key === "Escape" || e.key === "Esc") {
+                e.preventDefault();
+                setShowModal(false);
+                return;
+            }
 
             // Focus trap for Tab/Shift+Tab
             if (e.key === "Tab") {
@@ -74,7 +83,7 @@ const ListTodos = () => {
                 }
             }
 
-            // Enter triggers the button that is currently focused
+            // Enter triggers the focused button
             if (e.key === "Enter") {
                 e.preventDefault();
                 if (document.activeElement) {
@@ -91,15 +100,49 @@ const ListTodos = () => {
         };
     }, [showModal]);
 
-    // Calculate todos to show for current page
+    // Filter todos by search term
+    const filteredTodos = todos.filter((todo) =>
+        todo.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Pagination logic (applied on filtered todos)
     const indexOfLastTodo = currentPage * todosPerPage;
     const indexOfFirstTodo = indexOfLastTodo - todosPerPage;
-    const currentTodos = todos.slice(indexOfFirstTodo, indexOfLastTodo);
-    const totalPages = Math.ceil(todos.length / todosPerPage);
+    const currentTodos = filteredTodos.slice(indexOfFirstTodo, indexOfLastTodo);
+    const totalPages = Math.ceil(filteredTodos.length / todosPerPage);
 
     return (
         <Fragment>
-            <table className="table mt-5 text-center">
+            {/* Search Input with Clear Button */}
+            <div className="container mt-4 d-flex justify-content-center">
+                <div className="input-group mb-3" style={{ width: "50%" }}>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search todos..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                    />
+                    {searchTerm && (
+                        <button
+                            className="btn btn-outline-secondary"
+                            type="button"
+                            onClick={() => {
+                                setSearchTerm("");
+                                setCurrentPage(1);
+                            }}
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Todo Table */}
+            <table className="table mt-3 text-center">
                 <thead>
                     <tr>
                         <th>Description</th>
@@ -110,64 +153,80 @@ const ListTodos = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {currentTodos.map((todo) => (
-                        <tr key={todo.todo_id}>
-                            <td>{todo.description}</td>
-                            <td>
-                                <EditTodo todo={todo} getTodos={getTodos} /> {/* pass getTodos to refresh after edit */}
+                    {currentTodos.length > 0 ? (
+                        currentTodos.map((todo) => (
+                            <tr key={todo.todo_id}>
+                                <td>{todo.description}</td>
+                                <td>
+                                    <EditTodo todo={todo} getTodos={getTodos} />{" "}
+                                    {/* pass getTodos to refresh after edit */}
+                                </td>
+                                <td>
+                                    <button
+                                        className="btn btn-danger"
+                                        onClick={() => {
+                                            setSelectedTodo(todo.todo_id);
+                                            setShowModal(true);
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
+                                <td>{new Date(todo.created_at).toLocaleString()}</td>
+                                <td>{new Date(todo.updated_at).toLocaleString()}</td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="5" className="text-muted">
+                                No todos found.
                             </td>
-                            <td>
-                                <button
-                                    className="btn btn-danger"
-                                    onClick={() => {
-                                        setSelectedTodo(todo.todo_id); // set which todo is being deleted
-                                        setShowModal(true); // open modal
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                            </td>
-                            <td>{new Date(todo.created_at).toLocaleString()}</td>
-                            <td>{new Date(todo.updated_at).toLocaleString()}</td>
                         </tr>
-                    ))}
+                    )}
                 </tbody>
             </table>
 
             {/* Pagination Controls */}
-            <div className="d-flex justify-content-center mt-3">
-                <button
-                    className="btn btn-secondary mx-1"
-                    onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
-                >
-                    Previous
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => (
+            {filteredTodos.length > 0 && (
+                <div className="d-flex justify-content-center mt-3">
                     <button
-                        key={i + 1}
-                        className={`btn btn-sm mx-1 ${currentPage === i + 1 ? "btn-primary" : "btn-outline-primary"}`}
-                        onClick={() => setCurrentPage(i + 1)}
+                        className="btn btn-secondary mx-1"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(currentPage - 1)}
                     >
-                        {i + 1}
+                        Previous
                     </button>
-                ))}
 
-                <button
-                    className="btn btn-secondary mx-1"
-                    onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
-                >
-                    Next
-                </button>
-            </div>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i + 1}
+                            className={`btn btn-sm mx-1 ${currentPage === i + 1
+                                ? "btn-primary"
+                                : "btn-outline-primary"
+                                }`}
+                            onClick={() => setCurrentPage(i + 1)}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        className="btn btn-secondary mx-1"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
             {showModal && (
                 <>
-                    {/* Backdrop for dim effect */}
+                    {/* Backdrop */}
                     <div className="modal-backdrop fade show"></div>
 
-                    {/* Delete Confirmation Modal */}
+                    {/* Modal */}
                     <div className="modal show d-block" tabIndex="-1">
                         <div className="modal-dialog">
                             <div className="modal-content">
@@ -184,7 +243,7 @@ const ListTodos = () => {
                                 </div>
                                 <div className="modal-footer">
                                     <button
-                                        ref={deleteBtnRef} // reference to Delete button
+                                        ref={deleteBtnRef}
                                         className="btn btn-danger"
                                         onClick={() => {
                                             deleteTodo(selectedTodo);
@@ -194,7 +253,6 @@ const ListTodos = () => {
                                         Delete
                                     </button>
                                     <button
-                                        ref={cancelBtnRef} // attach ref to Cancel button
                                         className="btn btn-secondary"
                                         onClick={() => setShowModal(false)}
                                     >
