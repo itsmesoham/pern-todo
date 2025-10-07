@@ -21,6 +21,9 @@ const ListTodos = () => {
     const [checkedTodos, setCheckedTodos] = useState([]); // store todo_id of selected todos
     const [selectAll, setSelectAll] = useState(false); // for "Select All" checkbox
 
+    // State for delete mode
+    const [deleteMode, setDeleteMode] = useState(""); // "bulk", "page", or "single"
+
     // Fetch all todos
     const getTodos = async () => {
         try {
@@ -186,17 +189,35 @@ const ListTodos = () => {
                 </button>
             </div>
 
-            {/* Bulk Delete Button */}
-            {checkedTodos.length > 0 && (
-                <div className="container mb-2">
+            {/* Bulk Delete / Delete Page Buttons */}
+            <div className="container mb-2">
+                {/* Delete This Page Button */}
+                {currentTodos.length > 0 && (
+                    <button
+                        className="btn btn-danger me-2"
+                        onClick={() => {
+                            setCheckedTodos(currentTodos.map(todo => todo.todo_id));
+                            setDeleteMode("page");
+                            setShowModal(true);
+                        }}
+                    >
+                        Delete This Page Todos
+                    </button>
+                )}
+
+                {/* Delete Selected Button */}
+                {checkedTodos.length > 0 && (
                     <button
                         className="btn btn-danger"
-                        onClick={() => setShowModal(true)}
+                        onClick={() => {
+                            setDeleteMode("bulk");
+                            setShowModal(true);
+                        }}
                     >
                         Delete Selected ({checkedTodos.length})
                     </button>
-                </div>
-            )}
+                )}
+            </div>
 
             {/* Todo Table */}
             <table className="table mt-2 text-center">
@@ -247,18 +268,17 @@ const ListTodos = () => {
                                             }
                                         }}
                                     />
-
                                 </td>
                                 <td>{todo.description}</td>
                                 <td>
                                     <EditTodo todo={todo} getTodos={getTodos} />{" "}
-                                    {/* pass getTodos to refresh after edit */}
                                 </td>
                                 <td>
                                     <button
                                         className="btn btn-danger"
                                         onClick={() => {
                                             setSelectedTodo(todo.todo_id);
+                                            setDeleteMode("single");
                                             setShowModal(true);
                                         }}
                                     >
@@ -339,23 +359,24 @@ const ListTodos = () => {
                                         ref={deleteBtnRef}
                                         className="btn btn-danger"
                                         onClick={() => {
-                                            if (checkedTodos.length > 0) {
-                                                // Bulk delete
+                                            if (deleteMode === "bulk" || deleteMode === "page") {
+                                                // Delete selected or page todos
                                                 deleteTodos(checkedTodos).then(() => {
                                                     setCheckedTodos([]);
                                                     setSelectAll(false);
                                                     setShowModal(false);
+                                                    setDeleteMode(""); // reset mode
                                                 });
-                                            } else if (selectedTodo) {
+                                            } else if (deleteMode === "single" && selectedTodo) {
                                                 // Single delete
                                                 deleteTodo(selectedTodo);
                                                 setShowModal(false);
+                                                setDeleteMode(""); // reset mode
                                             }
                                         }}
                                     >
                                         Delete
                                     </button>
-
 
                                     <button
                                         className="btn btn-secondary"
