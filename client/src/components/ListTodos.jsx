@@ -144,7 +144,7 @@ const ListTodos = () => {
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="Search todos..."
+                        placeholder="Search todos based on description..."
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
@@ -254,6 +254,7 @@ const ListTodos = () => {
                             />
                         </th>
                         <th>Description</th>
+                        <th>Amount</th>
                         <th>Edit</th>
                         <th>Delete</th>
                         <th>Created At</th>
@@ -282,6 +283,7 @@ const ListTodos = () => {
                                     />
                                 </td>
                                 <td>{todo.description}</td>
+                                <td>{todo.amount}</td>
                                 <td>
                                     <EditTodo todo={todo} getTodos={getTodos} />{" "}
                                 </td>

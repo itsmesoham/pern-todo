@@ -2,9 +2,10 @@ import React, { Fragment, useState, useRef, useEffect } from 'react';
 
 const InputTodo = () => {
     const [description, setDescription] = useState("");
-    const inputRef = useRef(null); // create a reference to the input field
+    const [amount, setAmount] = useState(""); // new state for amount
+    const inputRef = useRef(null); // reference to the description input
 
-    // Auto-focus the input when the component loads
+    // Auto-focus the description input when component loads
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
@@ -17,21 +18,26 @@ const InputTodo = () => {
             return;
         }
 
+        if (amount === "" || isNaN(amount)) {
+            alert("Please enter a valid amount!");
+            return;
+        }
+
         try {
-            const body = { description };
+            const body = { description, amount }; // include amount
             const response = await fetch("http://localhost:5000/todos", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
 
-            // Optionally check for success before continuing
             if (response.ok) {
-                setDescription(""); // clear the input after adding
-                inputRef.current?.focus(); // focus back to input
+                setDescription("");
+                setAmount("");
+                inputRef.current?.focus(); // focus back to description
             }
 
-            // Instead of reloading the page, you can also refresh todos via state (better practice)
+            // Reload the page to reflect changes (or use state refresh)
             window.location = "/";
         } catch (err) {
             console.error(err.message);
@@ -40,17 +46,24 @@ const InputTodo = () => {
 
     return (
         <Fragment>
-            <h1 className='text-center mt-4'>PERN Todo List</h1>
-            <form className='d-flex mt-3' onSubmit={onSubmitForm}>
+            <h1 className="text-center mt-4">PERN Todo List</h1>
+            <form className="d-flex flex-column gap-2 mt-3" onSubmit={onSubmitForm}>
                 <input
-                    type='text'
-                    className='form-control'
-                    ref={inputRef} // attach ref here
+                    type="text"
+                    className="form-control"
+                    ref={inputRef}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Enter a todo..."
                 />
-                <button className='btn btn-success'>Add</button>
+                <input
+                    type="number"
+                    className="form-control"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Enter amount..."
+                />
+                <button className="btn btn-success mt-2">Add</button>
             </form>
         </Fragment>
     );
