@@ -1,30 +1,114 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect, useRef } from "react";
 
-const EditTodo = ({ todo }) => {
+const EditTodo = ({ todo, getTodos }) => {
     const [description, setDescription] = useState(todo.description);
-    const [amount, setAmount] = useState(todo.amount); // Added state for amount
+    const [amount, setAmount] = useState(todo.amount ?? ""); // reference to amount input (default to empty string if undefined)
+    const inputRef = useRef(null); // reference to input field
+    const editBtnRef = useRef(null); // reference to Edit button
 
-    //edit description function
+    // Edit Todo description function
     const updateDescription = async (e) => {
         e.preventDefault();
+
+        // Prevent update if description is unchanged or only spaces AND amount unchanged
+        const descUnchanged = description.trim() === (todo.description ?? "").trim();
+        const amtUnchanged = String(amount) === String(todo.amount ?? "");
+        if (descUnchanged && amtUnchanged) {
+            console.log("No change detected — skipping update");
+            return;
+        }
+
+        // basic validation for amount (allow empty string -> null)
+        if (amount !== "" && isNaN(Number(amount))) {
+            console.error("Amount must be a number");
+            return;
+        }
+
         try {
-            const body = { description, amount }; // Include amount here
-            const response = await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {
+            const body = {
+                description: description.trim(),
+                amount: amount === "" ? null : Number(amount),
+            };
+            await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
 
-            //refresh the page
-            window.location = "/";
+            // Refresh the todo list in parent to show updated todo at top
+            if (typeof getTodos === "function") {
+                getTodos();
+            }
         } catch (err) {
             console.error(err.message);
         }
     };
 
+    // Auto-focus input when modal opens
+    useEffect(() => {
+        const modal = document.getElementById(`id${todo.todo_id}`);
+        const handleShown = () => {
+            inputRef.current?.focus();
+        };
+
+        if (modal) modal.addEventListener("shown.bs.modal", handleShown);
+        return () => {
+            if (modal) modal.removeEventListener("shown.bs.modal", handleShown);
+        };
+    }, [todo.todo_id]);
+
+    // Listen for Enter key to trigger Edit button
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                editBtnRef.current?.click();
+            }
+        };
+
+        const modal = document.getElementById(`id${todo.todo_id}`);
+        if (modal) modal.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            if (modal) modal.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [todo.todo_id]);
+
+    // Focus trap for Tab/Shift+Tab inside modal
+    useEffect(() => {
+        const modal = document.getElementById(`id${todo.todo_id}`);
+        if (!modal) return;
+
+        const focusableEls = modal.querySelectorAll(
+            "input, button, [tabindex]:not([tabindex='-1'])"
+        );
+        if (!focusableEls.length) return;
+
+        const firstEl = focusableEls[0];
+        const lastEl = focusableEls[focusableEls.length - 1];
+
+        const handleTab = (e) => {
+            if (e.key !== "Tab") return;
+
+            if (e.shiftKey) {
+                if (document.activeElement === firstEl) {
+                    e.preventDefault();
+                    lastEl.focus();
+                }
+            } else {
+                if (document.activeElement === lastEl) {
+                    e.preventDefault();
+                    firstEl.focus();
+                }
+            }
+        };
+
+        document.addEventListener("keydown", handleTab);
+        return () => document.removeEventListener("keydown", handleTab);
+    }, [todo.todo_id]);
+
     return (
         <Fragment>
-            {/* <!-- Button to Open the Modal --> */}
             <button
                 type="button"
                 className="btn btn-warning"
@@ -34,18 +118,20 @@ const EditTodo = ({ todo }) => {
                 Edit
             </button>
 
-            {/* <!-- The Modal --> */}
             <div
-                className="modal fade"
+                className="modal"
                 id={`id${todo.todo_id}`}
-                onClick={() => {
-                    setDescription(todo.description);
-                    setAmount(todo.amount); // Reset amount on modal close
+                // FIX: only reset when actual modal backdrop (the modal element itself) is clicked.
+                onClick={(e) => {
+                    // e.target === e.currentTarget ensures clicks inside content won't trigger reset
+                    if (e.target.id === `id${todo.todo_id}` || e.target === e.currentTarget) {
+                        setDescription(todo.description);
+                        setAmount(todo.amount ?? "");
+                    }
                 }}
             >
                 <div className="modal-dialog">
                     <div className="modal-content">
-                        {/* <!-- Modal Header --> */}
                         <div className="modal-header">
                             <h4 className="modal-title">Edit Todo</h4>
                             <button
@@ -54,14 +140,13 @@ const EditTodo = ({ todo }) => {
                                 data-bs-dismiss="modal"
                                 onClick={() => {
                                     setDescription(todo.description);
-                                    setAmount(todo.amount); // Reset amount when closing
+                                    setAmount(todo.amount ?? "");
                                 }}
                             ></button>
                         </div>
-
-                        {/* <!-- Modal body --> */}
                         <div className="modal-body">
                             <input
+                                ref={inputRef}
                                 type="text"
                                 className="form-control mb-2"
                                 value={description}
@@ -74,12 +159,12 @@ const EditTodo = ({ todo }) => {
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder="Enter amount..."
+                                step="1"
                             />
                         </div>
-
-                        {/* <!-- Modal footer --> */}
                         <div className="modal-footer">
                             <button
+                                ref={editBtnRef}
                                 type="button"
                                 className="btn btn-warning"
                                 data-bs-dismiss="modal"
@@ -89,14 +174,14 @@ const EditTodo = ({ todo }) => {
                             </button>
                             <button
                                 type="button"
-                                className="btn btn-danger"
+                                className="btn btn-secondary"
                                 data-bs-dismiss="modal"
                                 onClick={() => {
                                     setDescription(todo.description);
-                                    setAmount(todo.amount); // Reset amount
+                                    setAmount(todo.amount ?? "");
                                 }}
                             >
-                                Close
+                                Cancel
                             </button>
                         </div>
                     </div>

@@ -47,7 +47,7 @@ const InputTodo = () => {
     return (
         <Fragment>
             <h1 className="text-center mt-4">PERN Todo List</h1>
-            <form className="d-flex flex-column gap-2 mt-3" onSubmit={onSubmitForm}>
+            <form className="d-flex flex-row gap-2 mt-3" onSubmit={onSubmitForm}>
                 <input
                     type="text"
                     className="form-control"
@@ -63,7 +63,7 @@ const InputTodo = () => {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="Enter amount..."
                 />
-                <button className="btn btn-success mt-2">Add</button>
+                <button className="btn btn-success">Add</button>
             </form>
         </Fragment>
     );
