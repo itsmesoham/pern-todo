@@ -2,13 +2,13 @@ import React, { Fragment, useState } from "react";
 
 const EditTodo = ({ todo }) => {
     const [description, setDescription] = useState(todo.description);
-    const [amount, setAmount] = useState(todo.amount); // 🆕 Added state for amount
+    const [amount, setAmount] = useState(todo.amount); // Added state for amount
 
     //edit description function
     const updateDescription = async (e) => {
         e.preventDefault();
         try {
-            const body = { description, amount }; // 🆕 Include amount here
+            const body = { description, amount }; // Include amount here
             const response = await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -40,7 +40,7 @@ const EditTodo = ({ todo }) => {
                 id={`id${todo.todo_id}`}
                 onClick={() => {
                     setDescription(todo.description);
-                    setAmount(todo.amount); // 🆕 Reset amount on modal close
+                    setAmount(todo.amount); // Reset amount on modal close
                 }}
             >
                 <div className="modal-dialog">
@@ -54,7 +54,7 @@ const EditTodo = ({ todo }) => {
                                 data-bs-dismiss="modal"
                                 onClick={() => {
                                     setDescription(todo.description);
-                                    setAmount(todo.amount); // 🆕 Reset amount when closing
+                                    setAmount(todo.amount); // Reset amount when closing
                                 }}
                             ></button>
                         </div>
@@ -67,7 +67,7 @@ const EditTodo = ({ todo }) => {
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />
-                            {/* 🆕 Added input for amount */}
+                            {/* Added input for amount */}
                             <input
                                 type="number"
                                 className="form-control"
@@ -93,7 +93,7 @@ const EditTodo = ({ todo }) => {
                                 data-bs-dismiss="modal"
                                 onClick={() => {
                                     setDescription(todo.description);
-                                    setAmount(todo.amount); // 🆕 Reset amount
+                                    setAmount(todo.amount); // Reset amount
                                 }}
                             >
                                 Close
