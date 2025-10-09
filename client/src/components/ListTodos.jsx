@@ -136,6 +136,20 @@ const ListTodos = () => {
     const currentTodos = filteredTodos.slice(indexOfFirstTodo, indexOfLastTodo);
     const totalPages = Math.ceil(filteredTodos.length / todosPerPage);
 
+    // Dynamic pagination window
+    const pageWindow = 4; // show 4 pages before and after current page
+    let startPage = Math.max(1, currentPage - pageWindow);
+    let endPage = Math.min(totalPages, currentPage + pageWindow);
+
+    // Adjust window to always show a consistent number of buttons when near edges
+    if (endPage - startPage < 2 * pageWindow) {
+        if (startPage === 1) {
+            endPage = Math.min(totalPages, startPage + 2 * pageWindow);
+        } else if (endPage === totalPages) {
+            startPage = Math.max(1, endPage - 2 * pageWindow);
+        }
+    }
+
     return (
         <Fragment>
             {/* Search Input with Clear Button */}
@@ -305,7 +319,7 @@ const ListTodos = () => {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="6" className="text-muted">
+                            <td colSpan="7" className="text-muted">
                                 No todos found.
                             </td>
                         </tr>
@@ -316,33 +330,54 @@ const ListTodos = () => {
             {/* Pagination Controls */}
             {filteredTodos.length > 0 && (
                 <div className="d-flex justify-content-center mt-3">
+                    {/* FIRST */}
                     <button
                         className="btn btn-secondary mx-1"
                         disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(currentPage - 1)}
+                        onClick={() => setCurrentPage(1)}
+                    >
+                        First
+                    </button>
+
+                    {/* PREVIOUS */}
+                    <button
+                        className="btn btn-secondary mx-1"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     >
                         Previous
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => (
-                        <button
-                            key={i + 1}
-                            className={`btn btn-sm mx-1 ${currentPage === i + 1
-                                ? "btn-primary"
-                                : "btn-outline-primary"
-                                }`}
-                            onClick={() => setCurrentPage(i + 1)}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
+                    {/* Numbered page buttons */}
+                    {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(
+                        (page) => (
+                            <button
+                                key={page}
+                                className={`btn btn-sm mx-1 ${currentPage === page ? "btn-primary" : "btn-outline-primary"
+                                    }`}
+                                onClick={() => setCurrentPage(page)}
+                            >
+                                {page}
+                            </button>
+                        )
+                    )}
 
+                    {/* NEXT */}
                     <button
                         className="btn btn-secondary mx-1"
                         disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(currentPage + 1)}
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     >
                         Next
+                    </button>
+
+                    {/* LAST */}
+                    <button
+                        className="btn btn-secondary mx-1"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(totalPages)}
+                    >
+                        Last
                     </button>
                 </div>
             )}
