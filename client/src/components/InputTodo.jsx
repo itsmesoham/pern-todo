@@ -24,6 +24,7 @@ const InputTodo = () => {
         }
 
         try {
+            // console.log("Making a insert req.");
             const body = { description, amount }; // include amount
             const response = await fetch("http://localhost:5000/todos", {
                 method: "POST",
@@ -31,14 +32,20 @@ const InputTodo = () => {
                 body: JSON.stringify(body),
             });
 
+            // console.log(JSON.stringify(body));
             if (response.ok) {
                 setDescription("");
                 setAmount("");
-                inputRef.current?.focus(); // focus back to description
+                inputRef.current?.focus();
+
+                // console.log("received ok res");
+                // Remove this line
+                // window.location = "/";
+
+                // Instead, emit an event or trigger refresh logic
+                window.dispatchEvent(new Event("todoAdded"));
             }
 
-            // Reload the page to reflect changes (or use state refresh)
-            window.location = "/";
         } catch (err) {
             console.error(err.message);
         }

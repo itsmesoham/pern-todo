@@ -26,6 +26,7 @@ const ListTodos = () => {
 
     // Fetch all todos
     const getTodos = async () => {
+        //  console.log("Fetching todos...");
         try {
             const response = await fetch("http://localhost:5000/todos");
             const jsonData = await response.json();
@@ -56,8 +57,26 @@ const ListTodos = () => {
         }
     };
 
+    // Delete a single todo
+    const deleteTodo = async (id) => {
+        try {
+            await fetch(`http://localhost:5000/todos/${id}`, {
+                method: "DELETE",
+            });
+            setTodos((prevTodos) => prevTodos.filter((todo) => todo.todo_id !== id));
+        } catch (err) {
+            console.error(err.message);
+        }
+    };
+
+
     useEffect(() => {
-        getTodos();
+        getTodos(); // initial load
+
+        const handleRefresh = () => getTodos();
+        window.addEventListener("todoAdded", handleRefresh);
+
+        return () => window.removeEventListener("todoAdded", handleRefresh);
     }, []);
 
     // Handle modal keyboard navigation
@@ -120,14 +139,30 @@ const ListTodos = () => {
     );
 
     // Apply sorting on filtered todos
-    if (sortOrder === "asc") {
+    if (sortOrder === "desc_az") {
+        // Description Ascending (A → Z)
         filteredTodos.sort((a, b) =>
-            a.description.toLowerCase() > b.description.toLowerCase() ? 1 : -1
+            a.description.localeCompare(b.description, undefined, { numeric: true, sensitivity: 'base' })
         );
-    } else if (sortOrder === "desc") {
+    } else if (sortOrder === "desc_za") {
+        // Description Descending (Z → A)
         filteredTodos.sort((a, b) =>
-            a.description.toLowerCase() < b.description.toLowerCase() ? 1 : -1
+            b.description.localeCompare(a.description, undefined, { numeric: true, sensitivity: 'base' })
         );
+    } else if (sortOrder === "amount_low_high") {
+        // Amount Ascending
+        filteredTodos.sort((a, b) => a.amount - b.amount);
+    } else if (sortOrder === "amount_high_low") {
+        // Amount Descending
+        filteredTodos.sort((a, b) => b.amount - a.amount);
+    } else {
+        // Default sort: updated_at descending (newest first)
+        filteredTodos.sort((a, b) => {
+            const dateA = new Date(a.updated_at || a.created_at).getTime();
+            const dateB = new Date(b.updated_at || b.created_at).getTime();
+            return dateB - dateA; // newest first
+        });
+        // console.log("This is else part of sorting.");
     }
 
     // Pagination logic (applied on filtered + sorted todos)
@@ -180,21 +215,22 @@ const ListTodos = () => {
                 </div>
             </div>
 
-            {/* Sort Buttons */}
-            <div className="container d-flex justify-content-center mb-1">
-                <div className="me-2">Description Sorting:</div>
-                <button
-                    className={`btn btn-outline-primary btn-sm me-2 ${sortOrder === "asc" ? "active" : ""}`}
-                    onClick={() => setSortOrder("asc")}
+            {/* Sorting Dropdown */}
+            <div className="container d-flex justify-content-center align-items-center mb-2">
+                <div className="me-2 fw-bold">Sort:</div>
+                <select
+                    className="form-select form-select-sm me-2"
+                    style={{ width: "auto" }}
+                    value={sortOrder || "default"}
+                    onChange={(e) => setSortOrder(e.target.value)}
                 >
-                    Ascending (A → Z)
-                </button>
-                <button
-                    className={`btn btn-outline-primary btn-sm me-2 ${sortOrder === "desc" ? "active" : ""}`}
-                    onClick={() => setSortOrder("desc")}
-                >
-                    Descending (Z → A)
-                </button>
+                    <option value="default">Default (Newest First)</option>
+                    <option value="desc_az">Description Ascending (A → Z)</option>
+                    <option value="desc_za">Description Descending (Z → A)</option>
+                    <option value="amount_low_high">Amount Ascending (Low → High)</option>
+                    <option value="amount_high_low">Amount Descending (High → Low)</option>
+                </select>
+
                 <button
                     className="btn btn-outline-secondary btn-sm"
                     onClick={() => setSortOrder(null)}
