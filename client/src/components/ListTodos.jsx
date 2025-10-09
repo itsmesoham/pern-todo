@@ -69,7 +69,6 @@ const ListTodos = () => {
         }
     };
 
-
     useEffect(() => {
         getTodos(); // initial load
 
