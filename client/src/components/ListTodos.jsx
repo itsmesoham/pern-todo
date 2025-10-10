@@ -191,7 +191,7 @@ const ListTodos = () => {
                 <div className="input-group mb-2" style={{ width: "50%" }}>
                     <input
                         type="text"
-                        className="form-control"
+                        className="form-control me-2"
                         placeholder="Search todos based on description..."
                         value={searchTerm}
                         onChange={(e) => {
