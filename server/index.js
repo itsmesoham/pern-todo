@@ -9,6 +9,9 @@ app.use(express.json()); //req.body
 
 // ROUTES //
 
+// const authRoutes = require("./auth");
+// app.use("/auth", authRoutes);
+
 // Create a todo
 app.post("/todos", async (req, res) => {
     try {
