@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useRef, useEffect } from 'react';
 
-const InputTodo = () => {
+const InputTodo = ({ user }) => {
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState(""); // new state for amount
     const inputRef = useRef(null); // reference to the description input
@@ -24,25 +24,20 @@ const InputTodo = () => {
         }
 
         try {
-            // console.log("Making a insert req.");
-            const body = { description, amount }; // include amount
+            // include user_id in the request
+            const body = { description, amount, user_id: user.user_id }; // <-- added user_id
             const response = await fetch("http://localhost:5000/todos", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
 
-            // console.log(JSON.stringify(body));
             if (response.ok) {
                 setDescription("");
                 setAmount("");
                 inputRef.current?.focus();
 
-                // console.log("received ok res");
-                // Remove this line
-                // window.location = "/";
-
-                // Instead, emit an event or trigger refresh logic
+                // Refresh todo list
                 window.dispatchEvent(new Event("todoAdded"));
             }
 
@@ -50,6 +45,7 @@ const InputTodo = () => {
             console.error(err.message);
         }
     };
+
 
     return (
         <Fragment>

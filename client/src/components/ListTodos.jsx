@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 import EditTodo from "./EditTodo";
 
-const ListTodos = () => {
+const ListTodos = ({ user }) => {
     const [todos, setTodos] = useState([]);
     const [selectedTodo, setSelectedTodo] = useState(null); // store the todo to delete
     const [showModal, setShowModal] = useState(false); // control modal
@@ -24,11 +24,10 @@ const ListTodos = () => {
     // State for delete mode
     const [deleteMode, setDeleteMode] = useState(""); // "bulk", "page", or "single"
 
-    // Fetch all todos
+    // Fetch all todos for this user
     const getTodos = async () => {
-        //  console.log("Fetching todos...");
         try {
-            const response = await fetch("http://localhost:5000/todos");
+            const response = await fetch(`http://localhost:5000/todos/${user.user_id}`);
             const jsonData = await response.json();
 
             // Default sort by updated_at descending
@@ -40,12 +39,12 @@ const ListTodos = () => {
         }
     };
 
-    // Delete todo(s)
+
     const deleteTodos = async (ids) => {
         try {
             await Promise.all(
                 ids.map((id) =>
-                    fetch(`http://localhost:5000/todos/${id}`, { method: "DELETE" })
+                    fetch(`http://localhost:5000/todos/${id}/${user.user_id}`, { method: "DELETE" })
                 )
             );
             // Remove all deleted todos from state at once
@@ -57,17 +56,16 @@ const ListTodos = () => {
         }
     };
 
-    // Delete a single todo
+
     const deleteTodo = async (id) => {
         try {
-            await fetch(`http://localhost:5000/todos/${id}`, {
-                method: "DELETE",
-            });
+            await fetch(`http://localhost:5000/todos/${id}/${user.user_id}`, { method: "DELETE" });
             setTodos((prevTodos) => prevTodos.filter((todo) => todo.todo_id !== id));
         } catch (err) {
             console.error(err.message);
         }
     };
+
 
     useEffect(() => {
         getTodos(); // initial load
