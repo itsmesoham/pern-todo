@@ -1,6 +1,6 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 
-const EditTodo = ({ todo, getTodos }) => {
+const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
     const [description, setDescription] = useState(todo.description);
     const [amount, setAmount] = useState(todo.amount ?? ""); // reference to amount input (default to empty string if undefined)
     const inputRef = useRef(null); // reference to input field
@@ -28,6 +28,7 @@ const EditTodo = ({ todo, getTodos }) => {
             const body = {
                 description: description.trim(),
                 amount: amount === "" ? null : Number(amount),
+                user_id: user.user_id, // ✅ include user_id to ensure todo belongs to logged-in user
             };
             await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {
                 method: "PUT",
