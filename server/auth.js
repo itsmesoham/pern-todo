@@ -5,7 +5,7 @@ const pool = require("./db");
 // REGISTER
 router.post("/register", async (req, res) => {
     try {
-        let { username, password } = req.body;
+        let { username, password, role } = req.body;
 
         // Trim and validate
         username = username.trim();
@@ -25,10 +25,13 @@ router.post("/register", async (req, res) => {
             return res.status(400).json({ success: false, message: "User already exists." });
         }
 
+        // Default role = 'user' if not provided
+        const userRole = role && role.toLowerCase() === "superadmin" ? "superadmin" : "user";
+
         // Insert new user
         const newUser = await pool.query(
-            "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
-            [username, password]
+            "INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *",
+            [username, password, userRole]
         );
 
         res.json({ success: true, message: "Registration successful", user: newUser.rows[0] });
@@ -37,6 +40,7 @@ router.post("/register", async (req, res) => {
         res.status(500).json({ success: false, message: "Server error during registration." });
     }
 });
+
 
 // LOGIN
 router.post("/login", async (req, res) => {
@@ -62,7 +66,15 @@ router.post("/login", async (req, res) => {
         );
 
         if (user.rows.length > 0) {
-            res.json({ success: true, message: "Login successful", user: user.rows[0] });
+            res.json({
+                success: true,
+                message: "Login successful",
+                user: {
+                    user_id: user.rows[0].user_id,
+                    username: user.rows[0].username,
+                    role: user.rows[0].role, // ✅ include role
+                },
+            });
         } else {
             res.json({ success: false, message: "Invalid credentials." });
         }
@@ -71,5 +83,6 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ success: false, message: "Server error during login." });
     }
 });
+
 
 module.exports = router;

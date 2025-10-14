@@ -45,11 +45,21 @@ app.post("/todos", async (req, res) => {
 app.get("/todos/:user_id", async (req, res) => {
     try {
         const { user_id } = req.params;
+        const { role } = req.query;
 
-        const allTodos = await pool.query(
-            "SELECT todo_id, description, amount, created_at, updated_at FROM todo WHERE user_id = $1 ORDER BY updated_at DESC",
-            [user_id]
-        );
+        let allTodos;
+        if (role === "superadmin") {
+            // superadmin sees all todos
+            allTodos = await pool.query(
+                "SELECT todo_id, description, amount, created_at, updated_at, user_id FROM todo ORDER BY updated_at DESC"
+            );
+        } else {
+            // normal user sees only their todos
+            allTodos = await pool.query(
+                "SELECT todo_id, description, amount, created_at, updated_at FROM todo WHERE user_id = $1 ORDER BY updated_at DESC",
+                [user_id]
+            );
+        }
 
         res.json(allTodos.rows);
     } catch (err) {
@@ -74,18 +84,23 @@ app.get("/todos/:id", async (req, res) => {
 app.put("/todos/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const { description, amount, user_id } = req.body;
+        const { description, amount, user_id, role } = req.body;
 
         if (!description || description.trim() === "") return res.status(400).json({ error: "Description cannot be empty" });
         if (!amount || isNaN(amount)) return res.status(400).json({ error: "Amount must be a number" });
-        if (!user_id) return res.status(400).json({ error: "User ID required" });
 
-        const result = await pool.query(
-            `UPDATE todo 
-             SET description = $1, amount = $2, updated_at = NOW() 
-             WHERE todo_id = $3 AND user_id = $4`,
-            [description.trim(), amount, id, user_id]
-        );
+        let result;
+        if (role === "superadmin") {
+            result = await pool.query(
+                `UPDATE todo SET description = $1, amount = $2, updated_at = NOW() WHERE todo_id = $3`,
+                [description.trim(), amount, id]
+            );
+        } else {
+            result = await pool.query(
+                `UPDATE todo SET description = $1, amount = $2, updated_at = NOW() WHERE todo_id = $3 AND user_id = $4`,
+                [description.trim(), amount, id, user_id]
+            );
+        }
 
         if (result.rowCount === 0) {
             return res.status(404).json({ error: "Todo not found or you don't have permission" });
@@ -98,23 +113,42 @@ app.put("/todos/:id", async (req, res) => {
     }
 });
 
-// Delete a todo
-app.delete("/todos/:id/:user_id", async (req, res) => {
+// Delete a todo (role-based: Superadmin or Owner)
+app.delete("/todos/:id", async (req, res) => {
     try {
-        const { id, user_id } = req.params;
+        const { id } = req.params;
+        const { user_id, role } = req.body; // coming from frontend
 
-        const result = await pool.query("DELETE FROM todo WHERE todo_id = $1 AND user_id = $2", [id, user_id]);
+        // if user is a normal user, they can only delete their own todos
+        if (role === "user") {
+            const result = await pool.query(
+                "DELETE FROM todo WHERE todo_id = $1 AND user_id = $2",
+                [id, user_id]
+            );
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: "Todo not found or you don't have permission" });
+            if (result.rowCount === 0) {
+                return res
+                    .status(404)
+                    .json({ error: "Todo not found or you don't have permission" });
+            }
+
+            return res.json({ message: "Todo deleted successfully" });
         }
 
-        res.json({ message: "Todo deleted successfully" });
+        // if user is superadmin, they can delete any todo
+        if (role === "superadmin") {
+            await pool.query("DELETE FROM todo WHERE todo_id = $1", [id]);
+            return res.json({ message: "Todo deleted by superadmin" });
+        }
+
+        // invalid role case
+        return res.status(403).json({ error: "Invalid role or access denied" });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error" });
     }
 });
+
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

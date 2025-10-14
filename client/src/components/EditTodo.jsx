@@ -1,24 +1,23 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 
-const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
+const EditTodo = ({ todo, getTodos, user }) => {
     const [description, setDescription] = useState(todo.description);
-    const [amount, setAmount] = useState(todo.amount ?? ""); // reference to amount input (default to empty string if undefined)
-    const inputRef = useRef(null); // reference to input field
-    const editBtnRef = useRef(null); // reference to Edit button
+    const [amount, setAmount] = useState(todo.amount ?? "");
+    const inputRef = useRef(null);
+    const editBtnRef = useRef(null);
 
-    // Edit Todo description function
-    const updateDescription = async (e) => {
+    const updateTodo = async (e) => {
         e.preventDefault();
 
-        // Prevent update if description is unchanged or only spaces AND amount unchanged
+        // Skip if nothing changed
         const descUnchanged = description.trim() === (todo.description ?? "").trim();
         const amtUnchanged = String(amount) === String(todo.amount ?? "");
         if (descUnchanged && amtUnchanged) {
-            console.log("No change detected — skipping update");
+            console.log("No changes detected — skipping update");
             return;
         }
 
-        // basic validation for amount (allow empty string -> null)
+        // Validate amount
         if (amount !== "" && isNaN(Number(amount))) {
             console.error("Amount must be a number");
             return;
@@ -28,37 +27,31 @@ const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
             const body = {
                 description: description.trim(),
                 amount: amount === "" ? null : Number(amount),
-                user_id: user.user_id, // ✅ include user_id to ensure todo belongs to logged-in user
+                user_id: todo.user_id ?? user.user_id, // owner of the todo
+                role: user.role, // inform backend if superadmin
             };
+
             await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
 
-            // Refresh the todo list in parent to show updated todo at top
-            if (typeof getTodos === "function") {
-                getTodos();
-            }
+            if (typeof getTodos === "function") getTodos();
         } catch (err) {
             console.error(err.message);
         }
     };
 
-    // Auto-focus input when modal opens
+    // Auto-focus input on modal open
     useEffect(() => {
         const modal = document.getElementById(`id${todo.todo_id}`);
-        const handleShown = () => {
-            inputRef.current?.focus();
-        };
-
+        const handleShown = () => inputRef.current?.focus();
         if (modal) modal.addEventListener("shown.bs.modal", handleShown);
-        return () => {
-            if (modal) modal.removeEventListener("shown.bs.modal", handleShown);
-        };
+        return () => modal && modal.removeEventListener("shown.bs.modal", handleShown);
     }, [todo.todo_id]);
 
-    // Listen for Enter key to trigger Edit button
+    // Enter key triggers Edit button
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === "Enter") {
@@ -66,23 +59,17 @@ const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
                 editBtnRef.current?.click();
             }
         };
-
         const modal = document.getElementById(`id${todo.todo_id}`);
         if (modal) modal.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            if (modal) modal.removeEventListener("keydown", handleKeyDown);
-        };
+        return () => modal && modal.removeEventListener("keydown", handleKeyDown);
     }, [todo.todo_id]);
 
-    // Focus trap for Tab/Shift+Tab inside modal
+    // Tab focus trap inside modal
     useEffect(() => {
         const modal = document.getElementById(`id${todo.todo_id}`);
         if (!modal) return;
 
-        const focusableEls = modal.querySelectorAll(
-            "input, button, [tabindex]:not([tabindex='-1'])"
-        );
+        const focusableEls = modal.querySelectorAll("input, button, [tabindex]:not([tabindex='-1'])");
         if (!focusableEls.length) return;
 
         const firstEl = focusableEls[0];
@@ -90,7 +77,6 @@ const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
 
         const handleTab = (e) => {
             if (e.key !== "Tab") return;
-
             if (e.shiftKey) {
                 if (document.activeElement === firstEl) {
                     e.preventDefault();
@@ -122,9 +108,7 @@ const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
             <div
                 className="modal"
                 id={`id${todo.todo_id}`}
-                // FIX: only reset when actual modal backdrop (the modal element itself) is clicked.
                 onClick={(e) => {
-                    // e.target === e.currentTarget ensures clicks inside content won't trigger reset
                     if (e.target.id === `id${todo.todo_id}` || e.target === e.currentTarget) {
                         setDescription(todo.description);
                         setAmount(todo.amount ?? "");
@@ -153,7 +137,6 @@ const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />
-                            {/* Added input for amount */}
                             <input
                                 type="number"
                                 className="form-control"
@@ -169,7 +152,7 @@ const EditTodo = ({ todo, getTodos, user }) => { // ✅ Added user prop
                                 type="button"
                                 className="btn btn-warning"
                                 data-bs-dismiss="modal"
-                                onClick={(e) => updateDescription(e)}
+                                onClick={(e) => updateTodo(e)}
                             >
                                 Edit
                             </button>
