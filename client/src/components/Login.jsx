@@ -35,6 +35,9 @@ const Login = ({ setUser }) => {
                 setUser(data.user);
                 localStorage.setItem("user", JSON.stringify(data.user));
             }
+
+            // Log the user info to check role, id, etc.
+            console.log(JSON.parse(localStorage.getItem("user")));
         } catch (error) {
             setMessage("Server error. Please try again later.");
         }

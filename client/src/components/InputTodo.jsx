@@ -49,7 +49,7 @@ const InputTodo = ({ user }) => {
 
     return (
         <Fragment>
-            <h1 className="text-center mt-4">PERN Todo List</h1>
+            <h1 className="text-center">PERN Todo List</h1>
             <form className="d-flex flex-row gap-2 mt-3" onSubmit={onSubmitForm}>
                 <input
                     type="text"

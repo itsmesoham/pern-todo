@@ -27,7 +27,7 @@ const ListTodos = ({ user }) => {
     // Fetch all todos for this user
     const getTodos = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/todos/${user.user_id}`);
+            const response = await fetch(`http://localhost:5000/todos/${user.user_id}?role=${user.role}`);
             const jsonData = await response.json();
 
             // Default sort by updated_at descending
@@ -39,27 +39,32 @@ const ListTodos = ({ user }) => {
         }
     };
 
-
+    // Delete multiple todos (role-based)
     const deleteTodos = async (ids) => {
         try {
             await Promise.all(
                 ids.map((id) =>
-                    fetch(`http://localhost:5000/todos/${id}/${user.user_id}`, { method: "DELETE" })
+                    fetch(`http://localhost:5000/todos/${id}`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ user_id: user.user_id, role: user.role }), // updated
+                    })
                 )
             );
-            // Remove all deleted todos from state at once
-            setTodos((prevTodos) =>
-                prevTodos.filter((todo) => !ids.includes(todo.todo_id))
-            );
+            setTodos((prevTodos) => prevTodos.filter((todo) => !ids.includes(todo.todo_id)));
         } catch (err) {
             console.error(err.message);
         }
     };
 
-
+    // Delete single todo (role-based)
     const deleteTodo = async (id) => {
         try {
-            await fetch(`http://localhost:5000/todos/${id}/${user.user_id}`, { method: "DELETE" });
+            await fetch(`http://localhost:5000/todos/${id}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: user.user_id, role: user.role }), // updated
+            });
             setTodos((prevTodos) => prevTodos.filter((todo) => todo.todo_id !== id));
         } catch (err) {
             console.error(err.message);
@@ -332,7 +337,7 @@ const ListTodos = ({ user }) => {
                                 <td>{todo.description}</td>
                                 <td>{todo.amount}</td>
                                 <td>
-                                    <EditTodo todo={todo} getTodos={getTodos} />{" "}
+                                    <EditTodo todo={todo} getTodos={getTodos} user={user} />{" "}
                                 </td>
                                 <td>
                                     <button
@@ -362,7 +367,7 @@ const ListTodos = ({ user }) => {
 
             {/* Pagination Controls */}
             {filteredTodos.length > 0 && (
-                <div className="d-flex justify-content-center mt-3">
+                <div className="d-flex justify-content-center">
                     {/* FIRST */}
                     <button
                         className="btn btn-secondary mx-1"
