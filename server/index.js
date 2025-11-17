@@ -27,7 +27,7 @@ app.post("/todos", async (req, res) => {
         const newTodo = await pool.query(
             `INSERT INTO todo 
             (description, amount, user_id, created_by, updated_by, created_at, updated_at)
-            VALUES ($1, $2, $3, $3, NULL, NOW(), NOW())
+            VALUES ($1, $2, $3, $3, $3, NOW(), NOW())
             RETURNING *`,
             [description.trim(), amount, user_id]
         );
