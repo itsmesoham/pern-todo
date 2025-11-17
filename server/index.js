@@ -3,33 +3,32 @@ const app = express();
 const cors = require("cors");
 const pool = require("./db");
 
-//middleware
 app.use(cors());
-app.use(express.json()); //req.body
+app.use(express.json());
 
-// ROUTES //
-
+// Auth routes
 const authRoutes = require("./auth");
 app.use("/auth", authRoutes);
 
-// Create a todo
+// Create Todo
 app.post("/todos", async (req, res) => {
     try {
         const { description, amount, user_id } = req.body;
 
-        if (!description || description.trim() === "") {
+        if (!description.trim())
             return res.status(400).json({ error: "Description cannot be empty" });
-        }
-        if (amount === undefined || amount === null || isNaN(amount)) {
+
+        if (amount === undefined || amount === null || isNaN(amount))
             return res.status(400).json({ error: "Amount must be a number" });
-        }
-        if (!user_id) {
+
+        if (!user_id)
             return res.status(400).json({ error: "User ID is required" });
-        }
 
         const newTodo = await pool.query(
-            `INSERT INTO todo (description, amount, user_id, created_at, updated_at) 
-             VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *`,
+            `INSERT INTO todo 
+            (description, amount, user_id, created_by, updated_by, created_at, updated_at)
+            VALUES ($1, $2, $3, $3, NULL, NOW(), NOW())
+            RETURNING *`,
             [description.trim(), amount, user_id]
         );
 
@@ -40,35 +39,53 @@ app.post("/todos", async (req, res) => {
     }
 });
 
-
-// Get all todos
-app.get("/todos/:user_id", async (req, res) => {
+// Get Todos (role based)
+app.get("/todos", async (req, res) => {
     try {
-        const { user_id } = req.params;
-        const { role } = req.query;
+        const { user_id, role } = req.query;
 
-        let allTodos;
+        let query;
+        let params = [];
+
         if (role === "superadmin") {
-            // superadmin sees all todos
-            allTodos = await pool.query(
-                "SELECT todo_id, description, amount, created_at, updated_at, user_id FROM todo ORDER BY updated_at DESC"
-            );
+            query = `
+                SELECT 
+                    t.todo_id, t.description, t.amount,
+                    t.created_at, t.updated_at,
+                    t.created_by, t.updated_by,
+                    u1.username AS created_by_user,
+                    u2.username AS updated_by_user
+                FROM todo t
+                JOIN users u1 ON t.created_by = u1.user_id
+                LEFT JOIN users u2 ON t.updated_by = u2.user_id
+                ORDER BY t.updated_at DESC
+            `;
         } else {
-            // normal user sees only their todos
-            allTodos = await pool.query(
-                "SELECT todo_id, description, amount, created_at, updated_at FROM todo WHERE user_id = $1 ORDER BY updated_at DESC",
-                [user_id]
-            );
+            query = `
+                SELECT 
+                    t.todo_id, t.description, t.amount,
+                    t.created_at, t.updated_at,
+                    t.created_by, t.updated_by,
+                    u1.username AS created_by_user,
+                    u2.username AS updated_by_user
+                FROM todo t
+                JOIN users u1 ON t.created_by = u1.user_id
+                LEFT JOIN users u2 ON t.updated_by = u2.user_id
+                WHERE t.user_id = $1
+                ORDER BY t.updated_at DESC
+            `;
+            params = [user_id];
         }
 
-        res.json(allTodos.rows);
+        const result = await pool.query(query, params);
+        res.json(result.rows);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error" });
     }
 });
 
-// Get a specific todo
+// Get one todo
 app.get("/todos/:id", async (req, res) => {
     try {
         const { id } = req.params;
@@ -80,31 +97,38 @@ app.get("/todos/:id", async (req, res) => {
     }
 });
 
-// Update a todo
+// Update Todo
 app.put("/todos/:id", async (req, res) => {
     try {
         const { id } = req.params;
         const { description, amount, user_id, role } = req.body;
 
-        if (!description || description.trim() === "") return res.status(400).json({ error: "Description cannot be empty" });
-        if (!amount || isNaN(amount)) return res.status(400).json({ error: "Amount must be a number" });
+        if (!description.trim())
+            return res.status(400).json({ error: "Description cannot be empty" });
+
+        if (amount === undefined || amount === null || isNaN(amount))
+            return res.status(400).json({ error: "Amount must be a number" });
 
         let result;
+
         if (role === "superadmin") {
             result = await pool.query(
-                `UPDATE todo SET description = $1, amount = $2, updated_at = NOW() WHERE todo_id = $3`,
-                [description.trim(), amount, id]
+                `UPDATE todo
+                 SET description = $1, amount = $2, updated_at = NOW(), updated_by = $3
+                 WHERE todo_id = $4`,
+                [description.trim(), amount, user_id, id]
             );
         } else {
             result = await pool.query(
-                `UPDATE todo SET description = $1, amount = $2, updated_at = NOW() WHERE todo_id = $3 AND user_id = $4`,
-                [description.trim(), amount, id, user_id]
+                `UPDATE todo
+                 SET description = $1, amount = $2, updated_at = NOW(), updated_by = $3
+                 WHERE todo_id = $4 AND user_id = $5`,
+                [description.trim(), amount, user_id, id, user_id]
             );
         }
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: "Todo not found or you don't have permission" });
-        }
+        if (result.rowCount === 0)
+            return res.status(404).json({ error: "Todo not found or no permission" });
 
         res.json({ message: "Todo updated successfully" });
     } catch (err) {
@@ -113,42 +137,40 @@ app.put("/todos/:id", async (req, res) => {
     }
 });
 
-// Delete a todo (role-based: Superadmin or Owner)
 app.delete("/todos/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const { user_id, role } = req.body; // coming from frontend
+        const { user_id, role } = req.body;
 
-        // if user is a normal user, they can only delete their own todos
-        if (role === "user") {
-            const result = await pool.query(
-                "DELETE FROM todo WHERE todo_id = $1 AND user_id = $2",
+        console.log("DELETE BODY:", req.body);  // debug
+
+        let deleted;
+
+        if (role === "superadmin") {
+            // superadmin → delete any todo
+            deleted = await pool.query(
+                "DELETE FROM todo WHERE todo_id = $1 RETURNING *",
+                [id]
+            );
+        } else {
+            // normal user → can delete only their own todo
+            deleted = await pool.query(
+                "DELETE FROM todo WHERE todo_id = $1 AND created_by = $2 RETURNING *",
                 [id, user_id]
             );
-
-            if (result.rowCount === 0) {
-                return res
-                    .status(404)
-                    .json({ error: "Todo not found or you don't have permission" });
-            }
-
-            return res.json({ message: "Todo deleted successfully" });
         }
 
-        // if user is superadmin, they can delete any todo
-        if (role === "superadmin") {
-            await pool.query("DELETE FROM todo WHERE todo_id = $1", [id]);
-            return res.json({ message: "Todo deleted by superadmin" });
+        if (deleted.rows.length === 0) {
+            return res.status(403).json({ error: "Not authorized or todo not found" });
         }
 
-        // invalid role case
-        return res.status(403).json({ error: "Invalid role or access denied" });
+        res.json({ message: "Todo deleted successfully" });
+
     } catch (err) {
-        console.error(err.message);
+        console.error(err);
         res.status(500).json({ error: "Server error" });
     }
 });
-
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
