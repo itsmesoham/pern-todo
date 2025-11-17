@@ -72,7 +72,7 @@ router.post("/login", async (req, res) => {
                 user: {
                     user_id: user.rows[0].user_id,
                     username: user.rows[0].username,
-                    role: user.rows[0].role, // ✅ include role
+                    role: user.rows[0].role, // include role
                 },
             });
         } else {

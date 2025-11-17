@@ -27,7 +27,10 @@ const ListTodos = ({ user }) => {
     // Fetch all todos for this user
     const getTodos = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/todos/${user.user_id}?role=${user.role}`);
+            const response = await fetch(
+                `http://localhost:5000/todos?role=${user.role}&user_id=${user.user_id}`
+            );
+
             const jsonData = await response.json();
 
             // Default sort by updated_at descending
@@ -70,7 +73,6 @@ const ListTodos = ({ user }) => {
             console.error(err.message);
         }
     };
-
 
     useEffect(() => {
         getTodos(); // initial load
@@ -311,6 +313,8 @@ const ListTodos = ({ user }) => {
                         <th>Delete</th>
                         <th>Created At</th>
                         <th>Updated At</th>
+                        <th>Created By</th>
+                        <th>Updated By</th>
                     </tr>
                 </thead>
 
@@ -353,6 +357,8 @@ const ListTodos = ({ user }) => {
                                 </td>
                                 <td>{new Date(todo.created_at).toLocaleString()}</td>
                                 <td>{new Date(todo.updated_at).toLocaleString()}</td>
+                                <td>{todo.created_by_user}</td>
+                                <td>{todo.updated_by_user}</td>
                             </tr>
                         ))
                     ) : (
