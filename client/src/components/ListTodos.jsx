@@ -245,17 +245,17 @@ const ListTodos = ({ user }) => {
 
             {/* Bulk Delete / Delete Page / Deselect Buttons */}
             <div className="container mb-2">
-                {/* Delete This Page Button */}
-                {currentTodos.length > 0 && (
+                {/* Delete All Todos */}
+                {todos.length > 0 && (
                     <button
                         className="btn btn-danger me-2"
                         onClick={() => {
-                            setCheckedTodos(currentTodos.map(todo => todo.todo_id)); // select current page todos
-                            setDeleteMode("page");
+                            setCheckedTodos(todos.map(todo => todo.todo_id)); // select ALL todos
+                            setDeleteMode("bulk");
                             setShowModal(true);
                         }}
                     >
-                        Delete This Page
+                        Delete All Todos
                     </button>
                 )}
 
@@ -299,13 +299,14 @@ const ListTodos = ({ user }) => {
                                     setSelectAll(isChecked);
 
                                     if (isChecked) {
-                                        // add all todos (from filtered list) to checkedTodos
-                                        setCheckedTodos(filteredTodos.map((todo) => todo.todo_id));
+                                        // ✔ Select ONLY current page todos
+                                        setCheckedTodos(currentTodos.map(todo => todo.todo_id));
                                     } else {
                                         setCheckedTodos([]);
                                     }
                                 }}
                             />
+
                         </th>
                         <th>Description</th>
                         <th>Amount</th>
@@ -461,15 +462,15 @@ const ListTodos = ({ user }) => {
                                         ref={deleteBtnRef}
                                         className="btn btn-danger"
                                         onClick={() => {
-                                            if (deleteMode === "bulk" || deleteMode === "page") {
-                                                // Delete selected or page todos
+                                            if (deleteMode === "bulk") {
                                                 deleteTodos(checkedTodos).then(() => {
                                                     setCheckedTodos([]);
                                                     setSelectAll(false);
                                                     setShowModal(false);
-                                                    setDeleteMode(""); // reset mode
+                                                    setDeleteMode("");
                                                 });
-                                            } else if (deleteMode === "single" && selectedTodo) {
+                                            }
+                                            else if (deleteMode === "single" && selectedTodo) {
                                                 // Single delete
                                                 deleteTodo(selectedTodo);
                                                 setShowModal(false);

@@ -61,6 +61,7 @@ app.get("/todos", async (req, res) => {
                 FROM todo t
                 JOIN users u1 ON t.created_by = u1.user_id
                 LEFT JOIN users u2 ON t.updated_by = u2.user_id
+                WHERE t.is_deleted = FALSE
                 ORDER BY t.updated_at DESC
             `;
         } else {
@@ -74,7 +75,7 @@ app.get("/todos", async (req, res) => {
                 FROM todo t
                 JOIN users u1 ON t.created_by = u1.user_id
                 LEFT JOIN users u2 ON t.updated_by = u2.user_id
-                WHERE t.user_id = $1
+                WHERE t.user_id = $1 AND t.is_deleted = FALSE
                 ORDER BY t.updated_at DESC
             `;
             params = [user_id];
@@ -145,21 +146,23 @@ app.delete("/todos/:id", async (req, res) => {
         const { id } = req.params;
         const { user_id, role } = req.body;
 
-        console.log("DELETE BODY:", req.body);  // debug
-
         let deleted;
 
         if (role === "superadmin") {
-            // superadmin → delete any todo
             deleted = await pool.query(
-                "DELETE FROM todo WHERE todo_id = $1 RETURNING *",
-                [id]
+                `UPDATE todo 
+                 SET is_deleted = TRUE, updated_by = $1, updated_at = NOW()
+                 WHERE todo_id = $2 AND is_deleted = FALSE 
+                 RETURNING *`,
+                [user_id, id]
             );
         } else {
-            // normal user → can delete only their own todo
             deleted = await pool.query(
-                "DELETE FROM todo WHERE todo_id = $1 AND created_by = $2 RETURNING *",
-                [id, user_id]
+                `UPDATE todo 
+                 SET is_deleted = TRUE, updated_by = $1, updated_at = NOW()
+                 WHERE todo_id = $2 AND created_by = $3 AND is_deleted = FALSE
+                 RETURNING *`,
+                [user_id, id, user_id]
             );
         }
 
@@ -167,7 +170,7 @@ app.delete("/todos/:id", async (req, res) => {
             return res.status(403).json({ error: "Not authorized or todo not found" });
         }
 
-        res.json({ message: "Todo deleted successfully" });
+        res.json({ message: "Todo marked as deleted" });
 
     } catch (err) {
         console.error(err);
