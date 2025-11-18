@@ -10,6 +10,9 @@ app.use(express.json());
 const authRoutes = require("./auth");
 app.use("/auth", authRoutes);
 
+// Print route
+app.use("/print", require("./printTodo"));
+
 // Create Todo
 app.post("/todos", async (req, res) => {
     try {

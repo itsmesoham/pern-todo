@@ -315,6 +315,7 @@ const ListTodos = ({ user }) => {
                         <th>Updated At</th>
                         <th>Created By</th>
                         <th>Updated By</th>
+                        <th>Print</th>
                     </tr>
                 </thead>
 
@@ -359,6 +360,14 @@ const ListTodos = ({ user }) => {
                                 <td>{new Date(todo.updated_at).toLocaleString()}</td>
                                 <td>{todo.created_by_user}</td>
                                 <td>{todo.updated_by_user}</td>
+                                <td>
+                                    <button
+                                        onClick={() => window.open(`http://localhost:5000/print/${todo.todo_id}`)}
+                                        className="btn btn-light"
+                                    >
+                                        🖨️
+                                    </button>
+                                </td>
                             </tr>
                         ))
                     ) : (
