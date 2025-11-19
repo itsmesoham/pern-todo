@@ -34,6 +34,7 @@ const EditTodo = ({ todo, getTodos, user }) => {
             await fetch(`http://localhost:5000/todos/${todo.todo_id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(body),
             });
 

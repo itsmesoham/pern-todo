@@ -1,9 +1,16 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const verify = require("./jwtAuth")
 const pool = require("./db");
 
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
+
+app.use(cookieParser());
 app.use(express.json());
 
 // Auth routes
@@ -14,7 +21,7 @@ app.use("/auth", authRoutes);
 app.use("/print", require("./printTodo"));
 
 // Create Todo
-app.post("/todos", async (req, res) => {
+app.post("/todos", verify, async (req, res) => {
     try {
         const { description, amount, user_id } = req.body;
 
@@ -43,7 +50,7 @@ app.post("/todos", async (req, res) => {
 });
 
 // Get Todos (role based)
-app.get("/todos", async (req, res) => {
+app.get("/todos", verify, async (req, res) => {
     try {
         const { user_id, role } = req.query;
 
@@ -90,7 +97,7 @@ app.get("/todos", async (req, res) => {
 });
 
 // Get one todo
-app.get("/todos/:id", async (req, res) => {
+app.get("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
         const todo = await pool.query("SELECT * FROM todo WHERE todo_id = $1", [id]);
@@ -102,10 +109,13 @@ app.get("/todos/:id", async (req, res) => {
 });
 
 // Update Todo
-app.put("/todos/:id", async (req, res) => {
+app.put("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
-        const { description, amount, user_id, role } = req.body;
+        const { description, amount } = req.body;
+
+        const user_id = req.user.user_id;
+        const role = req.user.role;
 
         if (!description.trim())
             return res.status(400).json({ error: "Description cannot be empty" });
@@ -141,10 +151,11 @@ app.put("/todos/:id", async (req, res) => {
     }
 });
 
-app.delete("/todos/:id", async (req, res) => {
+app.delete("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
-        const { user_id, role } = req.body;
+        const user_id = req.user.user_id;
+        const role = req.user.role;
 
         let deleted;
 

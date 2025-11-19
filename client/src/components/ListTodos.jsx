@@ -24,14 +24,23 @@ const ListTodos = ({ user }) => {
     // State for delete mode
     const [deleteMode, setDeleteMode] = useState(""); // "bulk", "page", or "single"
 
-    // Fetch all todos for this user
     const getTodos = async () => {
         try {
             const response = await fetch(
-                `http://localhost:5000/todos?role=${user.role}&user_id=${user.user_id}`
+                `http://localhost:5000/todos?role=${user.role}&user_id=${user.user_id}`,
+                {
+                    method: "GET",
+                    credentials: "include"
+                }
             );
 
             const jsonData = await response.json();
+
+            // Prevent crash if backend returns an error object
+            if (!Array.isArray(jsonData)) {
+                console.error("Invalid todos response:", jsonData);
+                return;
+            }
 
             // Default sort by updated_at descending
             jsonData.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
@@ -50,6 +59,7 @@ const ListTodos = ({ user }) => {
                     fetch(`http://localhost:5000/todos/${id}`, {
                         method: "DELETE",
                         headers: { "Content-Type": "application/json" },
+                        credentials: "include",
                         body: JSON.stringify({ user_id: user.user_id, role: user.role }), // updated
                     })
                 )
@@ -66,6 +76,7 @@ const ListTodos = ({ user }) => {
             await fetch(`http://localhost:5000/todos/${id}`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ user_id: user.user_id, role: user.role }), // updated
             });
             setTodos((prevTodos) => prevTodos.filter((todo) => todo.todo_id !== id));

@@ -9,11 +9,9 @@ const Login = ({ setUser }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Trim whitespace from both fields
         const trimmedUsername = username.trim();
         const trimmedPassword = password.trim();
 
-        // Validation: disallow spaces anywhere in username or password
         if (/\s/.test(trimmedUsername) || /\s/.test(trimmedPassword)) {
             setMessage("Username and password cannot contain spaces.");
             return;
@@ -25,33 +23,28 @@ const Login = ({ setUser }) => {
             const response = await fetch(`http://localhost:5000/auth/${endpoint}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
             });
 
             const data = await response.json();
-            setMessage(data.message);
+            setMessage(data.message || data.error);
 
-            if (data.success) {
-                setUser(data.user);
-                localStorage.setItem("user", JSON.stringify(data.user));
+            if (response.ok && data.user) {
+                setUser(data.user); // user = {user_id, username, role}
             }
 
-            // Log the user info to check role, id, etc.
-            console.log(JSON.parse(localStorage.getItem("user")));
         } catch (error) {
             setMessage("Server error. Please try again later.");
         }
     };
 
-    // Prevent spaces while typing
     const handleUsernameChange = (e) => {
-        const value = e.target.value.replace(/\s/g, "");
-        setUsername(value);
+        setUsername(e.target.value.replace(/\s/g, ""));
     };
 
     const handlePasswordChange = (e) => {
-        const value = e.target.value.replace(/\s/g, "");
-        setPassword(value);
+        setPassword(e.target.value.replace(/\s/g, ""));
     };
 
     return (
