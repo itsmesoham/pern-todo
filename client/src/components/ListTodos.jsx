@@ -380,7 +380,25 @@ const ListTodos = ({ user }) => {
                                 <td>{todo.updated_by_user}</td>
                                 <td>
                                     <button
-                                        onClick={() => window.open(`http://localhost:5000/print/${todo.todo_id}`)}
+                                        onClick={async () => {
+                                            const response = await fetch("http://localhost:5000/todo-action", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                credentials: "include",
+                                                body: JSON.stringify({
+                                                    mode: "download",
+                                                    todo_id: todo.todo_id
+                                                })
+                                            });
+
+                                            // Convert to a downloadable file
+                                            const blob = await response.blob();
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement("a");
+                                            a.href = url;
+                                            a.download = `todo_${todo.todo_id}.pdf`;
+                                            a.click();
+                                        }}
                                         className="btn btn-light"
                                     >
                                         🖨️
