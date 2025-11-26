@@ -2,9 +2,11 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const verify = require("./jwtAuth")
+const verify = require("./jwtAuth");
 const pool = require("./db");
+require("dotenv").config();
 
+/* MIDDLEWARE */
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true
@@ -13,14 +15,16 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
-// Auth routes
-const authRoutes = require("./auth");
-app.use("/auth", authRoutes);
+/* AUTH ROUTES */
+app.use("/auth", require("./auth"));
 
-// Print route
+/* PRINT ROUTE */
 app.use("/print", require("./printTodo"));
 
-// Create Todo
+/* SEND EMAIL ROUTE (Using Gmail API, not Nodemailer) */
+app.use("/send-email", require("./sendEmail"));   // <-- NEW CLEAN ROUTE
+
+/* CREATE TODO */
 app.post("/todos", verify, async (req, res) => {
     try {
         const { description, amount, user_id } = req.body;
@@ -49,7 +53,7 @@ app.post("/todos", verify, async (req, res) => {
     }
 });
 
-// Get Todos (role based)
+/* GET TODOS */
 app.get("/todos", verify, async (req, res) => {
     try {
         const { user_id, role } = req.query;
@@ -90,13 +94,14 @@ app.get("/todos", verify, async (req, res) => {
 
         const result = await pool.query(query, params);
         res.json(result.rows);
+
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error" });
     }
 });
 
-// Get one todo
+/* GET ONE TODO */
 app.get("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
@@ -108,7 +113,7 @@ app.get("/todos/:id", verify, async (req, res) => {
     }
 });
 
-// Update Todo
+/* UPDATE TODO */
 app.put("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
@@ -145,12 +150,14 @@ app.put("/todos/:id", verify, async (req, res) => {
             return res.status(404).json({ error: "Todo not found or no permission" });
 
         res.json({ message: "Todo updated successfully" });
+
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error" });
     }
 });
 
+/* DELETE TODO */
 app.delete("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
@@ -189,5 +196,6 @@ app.delete("/todos/:id", verify, async (req, res) => {
     }
 });
 
+/* START SERVER */
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

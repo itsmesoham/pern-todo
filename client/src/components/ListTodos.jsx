@@ -1,5 +1,6 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 import EditTodo from "./EditTodo";
+import SendEmailModal from "./SendEmailModal";
 
 const ListTodos = ({ user }) => {
     const [todos, setTodos] = useState([]);
@@ -22,7 +23,11 @@ const ListTodos = ({ user }) => {
     const [selectAll, setSelectAll] = useState(false); // for "Select All" checkbox
 
     // State for delete mode
-    const [deleteMode, setDeleteMode] = useState(""); // "bulk", "page", or "single"
+    const [deleteMode, setDeleteMode] = useState(""); // "bulk" or "single"
+
+    // Email modal states
+    const [openEmailModal, setOpenEmailModal] = useState(false);
+    const [emailAddress, setEmailAddress] = useState("");
 
     const getTodos = async () => {
         try {
@@ -261,7 +266,7 @@ const ListTodos = ({ user }) => {
                     <button
                         className="btn btn-danger me-2"
                         onClick={() => {
-                            setCheckedTodos(todos.map(todo => todo.todo_id)); // select ALL todos
+                            setCheckedTodos(filteredTodos.map(t => t.todo_id)); // select ALL todos
                             setDeleteMode("bulk");
                             setShowModal(true);
                         }}
@@ -310,7 +315,7 @@ const ListTodos = ({ user }) => {
                                     setSelectAll(isChecked);
 
                                     if (isChecked) {
-                                        // ✔ Select ONLY current page todos
+                                        // Select ONLY current page todos
                                         setCheckedTodos(currentTodos.map(todo => todo.todo_id));
                                     } else {
                                         setCheckedTodos([]);
@@ -328,6 +333,7 @@ const ListTodos = ({ user }) => {
                         <th>Created By</th>
                         <th>Updated By</th>
                         <th>Print</th>
+                        <th>Email</th>
                     </tr>
                 </thead>
 
@@ -378,6 +384,18 @@ const ListTodos = ({ user }) => {
                                         className="btn btn-light"
                                     >
                                         🖨️
+                                    </button>
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => {
+                                            console.log("Send Email clicked!", todo.todo_id);
+                                            setSelectedTodo(todo);   // which todo's PDF/email to send
+                                            setOpenEmailModal(true);
+                                        }}
+                                        className="btn btn-primary"
+                                    >
+                                        Send Email
                                     </button>
                                 </td>
                             </tr>
@@ -503,6 +521,14 @@ const ListTodos = ({ user }) => {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/*Send Email Model */}
+            {openEmailModal && (
+                <SendEmailModal
+                    selectedTodo={selectedTodo}
+                    closeModal={() => setOpenEmailModal(false)}
+                />
             )}
         </Fragment>
     );
