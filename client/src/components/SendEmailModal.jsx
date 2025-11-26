@@ -15,11 +15,12 @@ export default function SendEmailModal({ selectedTodo, closeModal }) {
     try {
       console.log("Sending todo_id:", selectedTodo.todo_id);
 
-      const response = await fetch("http://localhost:5000/send-email", {
+      const response = await fetch("http://localhost:5000/todo-action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          mode: "email",
           to: emailInput,
           subject: "Your Todo PDF",
           message: `Your Todo PDF with todo_id: ${selectedTodo.todo_id}`,

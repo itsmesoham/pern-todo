@@ -18,11 +18,8 @@ app.use(express.json());
 /* AUTH ROUTES */
 app.use("/auth", require("./auth"));
 
-/* PRINT ROUTE */
-app.use("/print", require("./printTodo"));
-
-/* SEND EMAIL ROUTE (Using Gmail API, not Nodemailer) */
-app.use("/send-email", require("./sendEmail"));   // <-- NEW CLEAN ROUTE
+/* TODO ACTION ROUTES */
+app.use("/todo-action", verify, require("./todoAction"));
 
 /* CREATE TODO */
 app.post("/todos", verify, async (req, res) => {
