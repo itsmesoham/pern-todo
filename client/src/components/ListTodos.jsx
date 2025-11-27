@@ -332,7 +332,7 @@ const ListTodos = ({ user }) => {
                         <th>Updated At</th>
                         <th>Created By</th>
                         <th>Updated By</th>
-                        <th>Print</th>
+                        <th>Download</th>
                         <th>Email</th>
                     </tr>
                 </thead>
@@ -401,7 +401,7 @@ const ListTodos = ({ user }) => {
                                         }}
                                         className="btn btn-light"
                                     >
-                                        🖨️
+                                        ⬇️
                                     </button>
                                 </td>
                                 <td>
@@ -413,7 +413,7 @@ const ListTodos = ({ user }) => {
                                         }}
                                         className="btn btn-primary"
                                     >
-                                        Send Email
+                                        Send Receipt
                                     </button>
                                 </td>
                             </tr>

@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
 import "./App.css";
 
 // components
@@ -10,20 +11,17 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check logged-in user from JWT cookie when app loads
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await fetch("http://localhost:5000/auth/me", {
           method: "GET",
-          credentials: "include", // Important: send cookies
+          credentials: "include",
         });
 
         const data = await res.json();
 
-        if (res.ok) {
-          setUser(data); // backend returns user object
-        }
+        if (res.ok) setUser(data);
       } catch (err) {
         console.log("User not logged in");
       } finally {
@@ -34,7 +32,6 @@ function App() {
     checkAuth();
   }, []);
 
-  // Logout
   const handleLogout = async () => {
     await fetch("http://localhost:5000/auth/logout", {
       method: "POST",
@@ -46,32 +43,47 @@ function App() {
   if (loading) return <h2>Loading...</h2>;
 
   return (
-    <Fragment>
-      <div className="container">
-        {!user ? (
-          <Login setUser={setUser} />
-        ) : (
-          <>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <h2>Welcome, {user.username}</h2>
+    <Routes>
 
-              <button className="btn btn-danger" onClick={handleLogout}>
-                Logout
-              </button>
+      {/* Home Page */}
+      <Route
+        path="/"
+        element={
+          !user ? (
+            <Login setUser={setUser} />
+          ) : (
+            <div className="container">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <h2>Welcome, {user.username}</h2>
+                <button className="btn btn-danger" onClick={handleLogout}>
+                  Logout
+                </button>
+              </div>
+
+              <InputTodo user={user} />
+              <ListTodos user={user} />
             </div>
+          )
+        }
+      />
 
-            <InputTodo user={user} />
-            <ListTodos user={user} />
-          </>
-        )}
-      </div>
-    </Fragment>
+      {/* 404 Page */}
+      <Route
+        path="*"
+        element={
+          <div style={{ textAlign: "center", marginTop: "50px" }}>
+            <h1>404 - Page Not Found</h1>
+            <p>The URL you entered does not exist.</p>
+          </div>
+        }
+      />
+    </Routes>
   );
 }
 
