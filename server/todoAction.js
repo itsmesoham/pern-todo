@@ -27,7 +27,7 @@ async function getTodoData(todo_id) {
 // BUILD PDF (returns PATH of saved PDF)
 async function buildPDF(todo, todo_id) {
     return new Promise((resolve, reject) => {
-        const path = `./todo_${todo_id}.pdf`;
+        const path = `${__dirname}/PDFs/todo_${todo_id}.pdf`;
         const doc = new PDFDocument({ margin: 50 });
 
         const stream = fs.createWriteStream(path);
