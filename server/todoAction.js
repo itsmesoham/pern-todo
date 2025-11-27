@@ -33,7 +33,7 @@ async function buildPDF(todo, todo_id) {
         const stream = fs.createWriteStream(path);
         doc.pipe(stream);
 
-        /* ========== HEADER ========== */
+        /* HEADER */
         doc.rect(50, 40, 500, 40)
             .fill("#007bff")
             .stroke()
@@ -47,7 +47,7 @@ async function buildPDF(todo, todo_id) {
 
         doc.moveDown(3);
 
-        /* ========== TABLE LAYOUT ========== */
+        /* TABLE LAYOUT */
         const labelX = 60;
         const valueX = 250;
         let startY = 120;
