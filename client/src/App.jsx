@@ -7,6 +7,9 @@ import InputTodo from "./components/InputTodo";
 import ListTodos from "./components/ListTodos";
 import Login from "./components/Login";
 
+// pages
+import Users from "./pages/Users";
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +43,13 @@ function App() {
     setUser(null);
   };
 
-  if (loading) return <h2>Loading...</h2>;
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "50px" }}>
+        <h2>Checking authentication...</h2>
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -69,6 +78,18 @@ function App() {
               <InputTodo user={user} />
               <ListTodos user={user} />
             </div>
+          )
+        }
+      />
+
+      {/* Users Page */}
+      <Route
+        path="/users"
+        element={
+          !user ? (
+            <Login setUser={setUser} />
+          ) : (
+            <Users user={user} handleLogout={handleLogout} />
           )
         }
       />

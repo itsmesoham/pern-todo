@@ -420,7 +420,7 @@ const ListTodos = ({ user }) => {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="7" className="text-muted">
+                            <td colSpan="11" className="text-muted">
                                 No todos found.
                             </td>
                         </tr>

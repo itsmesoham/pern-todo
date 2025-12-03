@@ -21,6 +21,9 @@ app.use("/auth", require("./auth"));
 /* TODO ACTION ROUTES */
 app.use("/todo-action", verify, require("./todoAction"));
 
+/* USERS PAGE ROUTE */
+app.use("/users", verify, require("./users"));
+
 /* CREATE TODO */
 app.post("/todos", verify, async (req, res) => {
     try {
@@ -190,6 +193,25 @@ app.delete("/todos/:id", verify, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });
+    }
+});
+
+/* USER STATUS CHANGE */
+app.put("/users/:id/status", async (req, res) => {
+    const { id } = req.params;
+    const { isactive } = req.body;
+
+    try {
+        const result = await pool.query(
+            "UPDATE users SET isactive = $1, updated_at = NOW() WHERE user_id = $2 RETURNING *",
+            [isactive, id]
+        );
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json("Server error");
     }
 });
 
