@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 
 export default function SendEmailModal({ selectedTodo, closeModal }) {
   const [emailInput, setEmailInput] = useState("");
@@ -70,7 +70,7 @@ export default function SendEmailModal({ selectedTodo, closeModal }) {
   };
 
   return (
-    <>
+    <Fragment>
       <style>
         {`
           /* Background fade */
@@ -251,6 +251,6 @@ export default function SendEmailModal({ selectedTodo, closeModal }) {
           </div>
         </div>
       </div>
-    </>
+    </Fragment>
   );
 }

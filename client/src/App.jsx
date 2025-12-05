@@ -6,6 +6,7 @@ import "./App.css";
 import InputTodo from "./components/InputTodo";
 import ListTodos from "./components/ListTodos";
 import Login from "./components/Login";
+import PageLayout from "./components/PageLayout";
 
 // pages
 import Users from "./pages/Users";
@@ -62,23 +63,10 @@ function App() {
           !user ? (
             <Login setUser={setUser} />
           ) : (
-            <div className="container">
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <h2>Welcome, {user.username}</h2>
-                <button className="btn btn-danger" onClick={handleLogout}>
-                  Logout
-                </button>
-              </div>
-
+            <PageLayout user={user} handleLogout={handleLogout}>
               <InputTodo user={user} />
               <ListTodos user={user} />
-            </div>
+            </PageLayout>
           )
         }
       />
@@ -90,7 +78,22 @@ function App() {
           !user ? (
             <Login setUser={setUser} />
           ) : (
-            <Users user={user} handleLogout={handleLogout} />
+            <PageLayout user={user} handleLogout={handleLogout} title="Users List">
+              <Users user={user} />
+            </PageLayout>
+          )
+        }
+      />
+
+      <Route
+        path="/permissions"
+        element={
+          !user ? (
+            <Login setUser={setUser} />
+          ) : (
+            <PageLayout user={user} handleLogout={handleLogout} title="Permissions List">
+              {/* <Users user={user} /> */}
+            </PageLayout>
           )
         }
       />

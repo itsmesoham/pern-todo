@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { Fragment } from 'react'
 
 const Permissions = () => {
-  return (
-    <div>Permissions</div>
-  )
+    return (
+        <Fragment>
+            <div>Permissions</div>
+        </Fragment>
+    );
 }
 
 export default Permissions

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import SearchBar from "../components/SearchBar";
 import SortDropdown from "../components/SortDropdown";
 import Pagination from "../components/Pagination";
@@ -134,24 +134,7 @@ export default function Users({ user, handleLogout }) {
     };
 
     return (
-        <div className="container">
-
-            {/* TOP BAR */}
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                }}
-            >
-                <h2>Welcome, {user?.username}</h2>
-                <button className="btn btn-danger" onClick={handleLogout}>
-                    Logout
-                </button>
-            </div>
-
-            <h1 className="text-center mt-2">PERN Todo List</h1>
-
+        <Fragment>
             {/* Search Input */}
             <SearchBar
                 searchTerm={searchTerm}
@@ -361,7 +344,6 @@ export default function Users({ user, handleLogout }) {
                 </>
             )}
 
-
-        </div>
+        </Fragment>
     );
 }

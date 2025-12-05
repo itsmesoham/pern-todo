@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 
 const Login = ({ setUser }) => {
     const [isRegister, setIsRegister] = useState(false);
@@ -48,57 +48,59 @@ const Login = ({ setUser }) => {
     };
 
     return (
-        <div className="min-h-screen max-w-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
-            <div className="bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md transform transition-all duration-300">
-                <h2 className="text-3xl font-bold text-center text-white mb-6">
-                    {isRegister ? "Create Account" : "Welcome Back"}
-                </h2>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <input
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={handleUsernameChange}
-                        required
-                        className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-2"
-                    />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={handlePasswordChange}
-                        required
-                        className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-2"
-                    />
-                    <button
-                        type="submit"
-                        className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition duration-200"
-                    >
-                        {isRegister ? "Register" : "Login"}
-                    </button>
-                </form>
+        <Fragment>
+            <div className="min-h-screen max-w-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+                <div className="bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md transform transition-all duration-300">
+                    <h2 className="text-3xl font-bold text-center text-white mb-6">
+                        {isRegister ? "Create Account" : "Welcome Back"}
+                    </h2>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <input
+                            type="text"
+                            placeholder="Username"
+                            value={username}
+                            onChange={handleUsernameChange}
+                            required
+                            className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-2"
+                        />
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={handlePasswordChange}
+                            required
+                            className="w-full px-4 py-3 bg-gray-900 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-2"
+                        />
+                        <button
+                            type="submit"
+                            className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition duration-200"
+                        >
+                            {isRegister ? "Register" : "Login"}
+                        </button>
+                    </form>
 
-                {message && (
-                    <p
-                        className={`mt-4 text-center text-sm ${message.includes("success") ? "text-green-400" : "text-red-400"
-                            }`}
-                    >
-                        {message}
-                    </p>
-                )}
+                    {message && (
+                        <p
+                            className={`mt-4 text-center text-sm ${message.includes("success") ? "text-green-400" : "text-red-400"
+                                }`}
+                        >
+                            {message}
+                        </p>
+                    )}
 
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={() => setIsRegister(!isRegister)}
-                        className="text-indigo-400 hover:text-indigo-300 transition text-sm"
-                    >
-                        {isRegister
-                            ? "Already have an account? Login"
-                            : "New user? Register"}
-                    </button>
+                    <div className="mt-6 text-center">
+                        <button
+                            onClick={() => setIsRegister(!isRegister)}
+                            className="text-indigo-400 hover:text-indigo-300 transition text-sm"
+                        >
+                            {isRegister
+                                ? "Already have an account? Login"
+                                : "New user? Register"}
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Fragment>
     );
 };
 
