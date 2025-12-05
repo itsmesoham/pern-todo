@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import SearchBar from "../components/SearchBar";
+import SortDropdown from "../components/SortDropdown";
+import Pagination from "../components/Pagination";
 
 export default function Users({ user, handleLogout }) {
     const [users, setUsers] = useState([]);
@@ -98,25 +101,30 @@ export default function Users({ user, handleLogout }) {
         if (!selectedUser) return;
 
         try {
-            const res = await fetch(`http://localhost:5000/users/${selectedUser.user_id}/status`, {
+            // Update role
+            await fetch(`http://localhost:5000/users/${selectedUser.user_id}/role`, {
                 method: "PUT",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: newRole })
+            });
+
+            // Update status (already exists)
+            await fetch(`http://localhost:5000/users/${selectedUser.user_id}/status`, {
+                method: "PUT",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ isactive: newStatus })
             });
 
-            if (res.ok) {
-                // update UI
-                setUsers(prev =>
-                    prev.map(u =>
-                        u.user_id === selectedUser.user_id
-                            ? { ...u, isactive: newStatus }
-                            : u
-                    )
-                );
-            }
+            // Update role + status in React UI
+            setUsers(prev =>
+                prev.map(u =>
+                    u.user_id === selectedUser.user_id
+                        ? { ...u, role: newRole, isactive: newStatus }
+                        : u
+                )
+            );
 
         } catch (err) {
             console.error(err);
@@ -145,49 +153,25 @@ export default function Users({ user, handleLogout }) {
             <h1 className="text-center mt-2">PERN Todo List</h1>
 
             {/* Search Input */}
-            <div className="container mt-2 d-flex justify-content-center">
-                <div className="input-group mb-2 mt-2" style={{ width: "50%" }}>
-                    <input
-                        type="text"
-                        className="form-control me-2"
-                        placeholder="Search users by username..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    {searchTerm && (
-                        <button
-                            className="btn btn-outline-secondary"
-                            type="button"
-                            onClick={() => setSearchTerm("")}
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
+            <SearchBar
+                searchTerm={searchTerm}
+                setSearchTerm={(value) => {
+                    setSearchTerm(value);
+                    setCurrentPage(1);
+                }}
+                placeholder="Search users by username..."
+            />
 
             {/* Sorting Dropdown */}
-            <div className="container d-flex justify-content-center align-items-center mb-2">
-                <div className="me-2 fw-bold">Sort:</div>
-
-                <select
-                    className="form-select form-select-sm me-2"
-                    style={{ width: "auto" }}
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                >
-                    <option value="default">Default (Newest First)</option>
-                    <option value="username_asc">Username Ascending (A → Z)</option>
-                    <option value="username_desc">Username Descending (Z → A)</option>
-                </select>
-
-                <button
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setSortOrder("default")}
-                >
-                    Reset
-                </button>
-            </div>
+            <SortDropdown
+                sortOrder={sortOrder}
+                setSortOrder={setSortOrder}
+                options={[
+                    { value: "default", label: "Default (Newest First)" },
+                    { value: "username_asc", label: "Username Ascending (A → Z)" },
+                    { value: "username_desc", label: "Username Descending (Z → A)" },
+                ]}
+            />
 
             <table className="table mt-4 text-center">
                 <thead>
@@ -208,24 +192,46 @@ export default function Users({ user, handleLogout }) {
                             <td>{u.username}</td>
 
                             <td>
-                                <button
-                                    className="btn btn-warning btn-sm"
-                                    onClick={() => openEditModal(u)}
-                                >
-                                    Edit
-                                </button>
+                                {/* EDIT BUTTON */}
+                                {u.user_id === user.user_id ? (
+                                    <span
+                                        className="text-muted"
+                                        title="You can't edit yourself"
+                                        style={{ cursor: "not-allowed" }}
+                                    >
+                                        —
+                                    </span>
+                                ) : (
+                                    <button
+                                        className="btn btn-warning btn-sm"
+                                        onClick={() => openEditModal(u)}
+                                    >
+                                        Edit
+                                    </button>
+                                )}
                             </td>
 
                             <td>
-                                <button
-                                    className="btn btn-danger btn-sm"
-                                    onClick={() => {
-                                        setUserToDelete(u);
-                                        setShowDeleteModal(true);
-                                    }}
-                                >
-                                    Delete user
-                                </button>
+                                {/* DELETE BUTTON */}
+                                {u.user_id === user.user_id ? (
+                                    <span
+                                        className="text-muted"
+                                        title="You can't delete yourself"
+                                        style={{ cursor: "not-allowed" }}
+                                    >
+                                        —
+                                    </span>
+                                ) : (
+                                    <button
+                                        className="btn btn-danger btn-sm"
+                                        onClick={() => {
+                                            setUserToDelete(u);
+                                            setShowDeleteModal(true);
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                )}
                             </td>
 
                             <td>{new Date(u.created_at).toLocaleString()}</td>
@@ -238,45 +244,13 @@ export default function Users({ user, handleLogout }) {
             </table>
 
             {/* Pagination Controls */}
-            {totalUsers > 0 && (
-                <div className="d-flex justify-content-center mt-3">
-
-                    <button className="btn btn-secondary mx-1"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(1)}>
-                        First
-                    </button>
-
-                    <button className="btn btn-secondary mx-1"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(currentPage - 1)}>
-                        Previous
-                    </button>
-
-                    {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i)
-                        .map((page) => (
-                            <button
-                                key={page}
-                                className={`btn btn-sm mx-1 ${currentPage === page ? "btn-primary" : "btn-outline-primary"}`}
-                                onClick={() => setCurrentPage(page)}
-                            >
-                                {page}
-                            </button>
-                        ))}
-
-                    <button className="btn btn-secondary mx-1"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(currentPage + 1)}>
-                        Next
-                    </button>
-
-                    <button className="btn btn-secondary mx-1"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(totalPages)}>
-                        Last
-                    </button>
-                </div>
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                startPage={startPage}
+                endPage={endPage}
+                setCurrentPage={setCurrentPage}
+            />
 
             {/* Edit User Modal */}
             {showModal && selectedUser && (
@@ -302,11 +276,11 @@ export default function Users({ user, handleLogout }) {
                                         value={newRole}
                                         onChange={(e) => setNewRole(e.target.value)}
                                     >
-                                        <option value="Admin">Admin</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Editor">Editor</option>
-                                        <option value="Viewer">Viewer</option>
-                                        <option value="Guest">Guest</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="editor">Editor</option>
+                                        <option value="viewer">Viewer</option>
+                                        <option value="guest">Guest</option>
                                     </select>
                                 </div>
 

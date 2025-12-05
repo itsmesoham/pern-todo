@@ -9,6 +9,7 @@ import Login from "./components/Login";
 
 // pages
 import Users from "./pages/Users";
+import Permissions from "./pages/Permissions";
 
 function App() {
   const [user, setUser] = useState(null);

@@ -1,6 +1,9 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
 import EditTodo from "./EditTodo";
 import SendEmailModal from "./SendEmailModal";
+import SearchBar from "./SearchBar";
+import SortDropdown from "./SortDropdown";
+import Pagination from "./Pagination";
 
 const ListTodos = ({ user }) => {
     const [todos, setTodos] = useState([]);
@@ -29,7 +32,7 @@ const ListTodos = ({ user }) => {
     const [openEmailModal, setOpenEmailModal] = useState(false);
     const [emailAddress, setEmailAddress] = useState("");
 
-    const getTodos = async () => {
+    async function getTodos() {
         try {
             const response = await fetch(
                 `http://localhost:5000/todos?role=${user.role}&user_id=${user.user_id}`,
@@ -54,7 +57,7 @@ const ListTodos = ({ user }) => {
         } catch (err) {
             console.error(err.message);
         }
-    };
+    }
 
     // Delete multiple todos (role-based)
     const deleteTodos = async (ids) => {
@@ -65,7 +68,7 @@ const ListTodos = ({ user }) => {
                         method: "DELETE",
                         headers: { "Content-Type": "application/json" },
                         credentials: "include",
-                        body: JSON.stringify({ user_id: user.user_id, role: user.role }), // updated
+                        body: JSON.stringify({ user_id: user.user_id, role: user.role }),
                     })
                 )
             );
@@ -82,7 +85,7 @@ const ListTodos = ({ user }) => {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ user_id: user.user_id, role: user.role }), // updated
+                body: JSON.stringify({ user_id: user.user_id, role: user.role }),
             });
             setTodos((prevTodos) => prevTodos.filter((todo) => todo.todo_id !== id));
         } catch (err) {
@@ -208,56 +211,27 @@ const ListTodos = ({ user }) => {
     return (
         <Fragment>
             {/* Search Input with Clear Button */}
-            <div className="container mt-2 d-flex justify-content-center">
-                <div className="input-group mb-2" style={{ width: "50%" }}>
-                    <input
-                        type="text"
-                        className="form-control me-2"
-                        placeholder="Search todos based on description..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                    />
-                    {searchTerm && (
-                        <button
-                            className="btn btn-outline-secondary"
-                            type="button"
-                            onClick={() => {
-                                setSearchTerm("");
-                                setCurrentPage(1);
-                            }}
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
+            <SearchBar
+                searchTerm={searchTerm}
+                setSearchTerm={(value) => {
+                    setSearchTerm(value);
+                    setCurrentPage(1);
+                }}
+                placeholder="Search todos based on description..."
+            />
 
             {/* Sorting Dropdown */}
-            <div className="container d-flex justify-content-center align-items-center mb-2">
-                <div className="me-2 fw-bold">Sort:</div>
-                <select
-                    className="form-select form-select-sm me-2"
-                    style={{ width: "auto" }}
-                    value={sortOrder || "default"}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                >
-                    <option value="default">Default (Newest First)</option>
-                    <option value="desc_az">Description Ascending (A → Z)</option>
-                    <option value="desc_za">Description Descending (Z → A)</option>
-                    <option value="amount_low_high">Amount Ascending (Low → High)</option>
-                    <option value="amount_high_low">Amount Descending (High → Low)</option>
-                </select>
-
-                <button
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setSortOrder(null)}
-                >
-                    Reset
-                </button>
-            </div>
+            <SortDropdown
+                sortOrder={sortOrder || "default"}
+                setSortOrder={setSortOrder}
+                options={[
+                    { value: "default", label: "Default (Newest First)" },
+                    { value: "desc_az", label: "Description Ascending (A → Z)" },
+                    { value: "desc_za", label: "Description Descending (Z → A)" },
+                    { value: "amount_low_high", label: "Amount Ascending (Low → High)" },
+                    { value: "amount_high_low", label: "Amount Descending (High → Low)" },
+                ]}
+            />
 
             {/* Bulk Delete / Delete Page / Deselect Buttons */}
             <div className="container mb-2">
@@ -429,59 +403,13 @@ const ListTodos = ({ user }) => {
             </table>
 
             {/* Pagination Controls */}
-            {filteredTodos.length > 0 && (
-                <div className="d-flex justify-content-center">
-                    {/* FIRST */}
-                    <button
-                        className="btn btn-secondary mx-1"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(1)}
-                    >
-                        First
-                    </button>
-
-                    {/* PREVIOUS */}
-                    <button
-                        className="btn btn-secondary mx-1"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    >
-                        Previous
-                    </button>
-
-                    {/* Numbered page buttons */}
-                    {Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(
-                        (page) => (
-                            <button
-                                key={page}
-                                className={`btn btn-sm mx-1 ${currentPage === page ? "btn-primary" : "btn-outline-primary"
-                                    }`}
-                                onClick={() => setCurrentPage(page)}
-                            >
-                                {page}
-                            </button>
-                        )
-                    )}
-
-                    {/* NEXT */}
-                    <button
-                        className="btn btn-secondary mx-1"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    >
-                        Next
-                    </button>
-
-                    {/* LAST */}
-                    <button
-                        className="btn btn-secondary mx-1"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(totalPages)}
-                    >
-                        Last
-                    </button>
-                </div>
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                startPage={startPage}
+                endPage={endPage}
+                setCurrentPage={setCurrentPage}
+            />
 
             {/* Delete Confirmation Modal */}
             {showModal && (
