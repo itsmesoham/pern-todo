@@ -4,6 +4,7 @@ import SendEmailModal from "./SendEmailModal";
 import SearchBar from "./SearchBar";
 import SortDropdown from "./SortDropdown";
 import Pagination from "./Pagination";
+import DataTable from "./DataTable";
 
 const ListTodos = ({ user }) => {
     const [todos, setTodos] = useState([]);
@@ -31,6 +32,8 @@ const ListTodos = ({ user }) => {
     // Email modal states
     const [openEmailModal, setOpenEmailModal] = useState(false);
     const [emailAddress, setEmailAddress] = useState("");
+
+    const [todoToEdit, setTodoToEdit] = useState(null);
 
     async function getTodos() {
         try {
@@ -277,130 +280,82 @@ const ListTodos = ({ user }) => {
             </div>
 
             {/* Todo Table */}
-            <table className="table mt-2 text-center">
-                <thead>
-                    <tr>
-                        <th>
-                            <input
-                                type="checkbox"
-                                checked={selectAll}
-                                onChange={(e) => {
-                                    const isChecked = e.target.checked;
-                                    setSelectAll(isChecked);
+            <DataTable
+                data={currentTodos}
+                enableCheckbox={true}
+                onSelectionChange={(ids) => setCheckedTodos(ids)}
+                columns={[
+                    { key: "description", label: "Description" },
+                    { key: "amount", label: "Amount" },
+                    {
+                        key: "created_at",
+                        label: "Created At",
+                        format: (v) => new Date(v).toLocaleString()
+                    },
+                    {
+                        key: "updated_at",
+                        label: "Updated At",
+                        format: (v) => new Date(v).toLocaleString()
+                    },
+                    { key: "created_by_user", label: "Created By" },
+                    { key: "updated_by_user", label: "Updated By" }
+                ]}
+                actions={[
+                    {
+                        label: "Edit",
+                        className: "btn-warning btn-sm",
+                        onClick: (todo) => {
+                            console.log("EDIT CLICKED ->", todo);
+                            setTodoToEdit(todo);
+                        }
+                    },
+                    {
+                        label: "Delete",
+                        className: "btn-danger btn-sm",
+                        onClick: (todo) => {
+                            setSelectedTodo(todo.todo_id);
+                            setDeleteMode("single");
+                            setShowModal(true);
+                        }
+                    },
+                    {
+                        label: "Download",
+                        className: "btn-light btn-sm",
+                        onClick: async (todo) => {
+                            const response = await fetch("http://localhost:5000/todo-action", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                credentials: "include",
+                                body: JSON.stringify({ mode: "download", todo_id: todo.todo_id })
+                            });
 
-                                    if (isChecked) {
-                                        // Select ONLY current page todos
-                                        setCheckedTodos(currentTodos.map(todo => todo.todo_id));
-                                    } else {
-                                        setCheckedTodos([]);
-                                    }
-                                }}
-                            />
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `todo_${todo.todo_id}.pdf`;
+                            a.click();
+                        }
+                    },
+                    {
+                        label: "Email",
+                        className: "btn-primary btn-sm",
+                        onClick: (todo) => {
+                            setSelectedTodo(todo);
+                            setOpenEmailModal(true);
+                        }
+                    }
+                ]}
+            />
 
-                        </th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Edit</th>
-                        <th>Delete</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
-                        <th>Created By</th>
-                        <th>Updated By</th>
-                        <th>Download</th>
-                        <th>Email</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {currentTodos.length > 0 ? (
-                        currentTodos.map((todo) => (
-                            <tr key={todo.todo_id}>
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        checked={checkedTodos.includes(todo.todo_id)}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setCheckedTodos([...checkedTodos, todo.todo_id]);
-                                            } else {
-                                                setCheckedTodos(
-                                                    checkedTodos.filter((id) => id !== todo.todo_id)
-                                                );
-                                                setSelectAll(false); // uncheck selectAll if any todo is unchecked
-                                            }
-                                        }}
-                                    />
-                                </td>
-                                <td>{todo.description}</td>
-                                <td>{todo.amount}</td>
-                                <td>
-                                    <EditTodo todo={todo} getTodos={getTodos} user={user} />{" "}
-                                </td>
-                                <td>
-                                    <button
-                                        className="btn btn-danger"
-                                        onClick={() => {
-                                            setSelectedTodo(todo.todo_id);
-                                            setDeleteMode("single");
-                                            setShowModal(true);
-                                        }}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                                <td>{new Date(todo.created_at).toLocaleString()}</td>
-                                <td>{new Date(todo.updated_at).toLocaleString()}</td>
-                                <td>{todo.created_by_user}</td>
-                                <td>{todo.updated_by_user}</td>
-                                <td>
-                                    <button
-                                        onClick={async () => {
-                                            const response = await fetch("http://localhost:5000/todo-action", {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                credentials: "include",
-                                                body: JSON.stringify({
-                                                    mode: "download",
-                                                    todo_id: todo.todo_id
-                                                })
-                                            });
-
-                                            // Convert to a downloadable file
-                                            const blob = await response.blob();
-                                            const url = window.URL.createObjectURL(blob);
-                                            const a = document.createElement("a");
-                                            a.href = url;
-                                            a.download = `todo_${todo.todo_id}.pdf`;
-                                            a.click();
-                                        }}
-                                        className="btn btn-light"
-                                    >
-                                        ⬇️
-                                    </button>
-                                </td>
-                                <td>
-                                    <button
-                                        onClick={() => {
-                                            console.log("Send Email clicked!", todo.todo_id);
-                                            setSelectedTodo(todo);   // which todo's PDF/email to send
-                                            setOpenEmailModal(true);
-                                        }}
-                                        className="btn btn-primary"
-                                    >
-                                        Send Receipt
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="11" className="text-muted">
-                                No todos found.
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            {todoToEdit && (
+                <EditTodo
+                    todo={todoToEdit}
+                    getTodos={getTodos}
+                    user={user}
+                    closeModal={() => setTodoToEdit(null)}
+                />
+            )}
 
             {/* Pagination Controls */}
             <Pagination

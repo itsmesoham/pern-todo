@@ -2,6 +2,7 @@ import React, { Fragment, useEffect, useState } from "react";
 import SearchBar from "../components/SearchBar";
 import SortDropdown from "../components/SortDropdown";
 import Pagination from "../components/Pagination";
+import DataTable from "../components/DataTable";
 
 export default function Users({ user, handleLogout }) {
     const [users, setUsers] = useState([]);
@@ -21,9 +22,15 @@ export default function Users({ user, handleLogout }) {
     const [selectedUser, setSelectedUser] = useState(null);
     const [newRole, setNewRole] = useState("");
     const [newStatus, setNewStatus] = useState("");
+
     //Delete modal states
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
+
+    // Checkbox states
+    const [checkedUsers, setCheckedUsers] = useState([]);
+    const [selectAll, setSelectAll] = useState(false); // select all on current page
+    const [deleteMode, setDeleteMode] = useState("");  // 'bulk' or 'single'
 
     useEffect(() => {
         if (!user) return;
@@ -68,26 +75,34 @@ export default function Users({ user, handleLogout }) {
     let endPage = Math.min(totalPages, currentPage + pageWindow);
 
     const deleteUser = async () => {
-        if (!userToDelete) return;
-
         try {
-            const res = await fetch(`http://localhost:5000/users/${userToDelete.user_id}`, {
-                method: "DELETE",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
+            let idsToDelete = [];
 
-            if (res.ok) {
-                setUsers(users.filter((u) => u.user_id !== userToDelete.user_id));
+            if (deleteMode === "bulk") {
+                idsToDelete = checkedUsers;
+            } else if (deleteMode === "single") {
+                idsToDelete = [userToDelete.user_id];
             }
+
+            await Promise.all(
+                idsToDelete.map(id =>
+                    fetch(`http://localhost:5000/users/${id}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                        headers: { "Content-Type": "application/json" }
+                    })
+                )
+            );
+
+            setUsers(prev => prev.filter(u => !idsToDelete.includes(u.user_id)));
         } catch (err) {
             console.error(err);
         }
 
+        setCheckedUsers([]);
+        setSelectAll(false);
         setShowDeleteModal(false);
-        setUserToDelete(null);
+        setDeleteMode("");
     };
 
     const openEditModal = (user) => {
@@ -156,75 +171,92 @@ export default function Users({ user, handleLogout }) {
                 ]}
             />
 
-            <table className="table mt-4 text-center">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Edit</th>
-                        <th>Delete</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
+            {/* Bulk Delete / Delete Page / Deselect Buttons */}
+            <div className="container mb-2">
 
-                <tbody>
-                    {paginatedUsers.map(u => (
-                        <tr key={u.user_id}>
-                            <td>{u.username}</td>
+                {/* Delete All Users (all pages) */}
+                {users.length > 0 && (
+                    <button
+                        className="btn btn-danger me-2"
+                        onClick={() => {
+                            setCheckedUsers(users.map(u => u.user_id)); // Select ALL users
+                            setDeleteMode("bulk");
+                            setShowDeleteModal(true);
+                        }}
+                    >
+                        Delete All Users
+                    </button>
+                )}
 
-                            <td>
-                                {/* EDIT BUTTON */}
-                                {u.user_id === user.user_id ? (
-                                    <span
-                                        className="text-muted"
-                                        title="You can't edit yourself"
-                                        style={{ cursor: "not-allowed" }}
-                                    >
-                                        —
-                                    </span>
-                                ) : (
-                                    <button
-                                        className="btn btn-warning btn-sm"
-                                        onClick={() => openEditModal(u)}
-                                    >
-                                        Edit
-                                    </button>
-                                )}
-                            </td>
+                {/* Delete Selected Button */}
+                {checkedUsers.length > 0 && (
+                    <button
+                        className="btn btn-danger me-2"
+                        onClick={() => {
+                            setDeleteMode("bulk");
+                            setShowDeleteModal(true);
+                        }}
+                    >
+                        Delete Selected ({checkedUsers.length})
+                    </button>
+                )}
 
-                            <td>
-                                {/* DELETE BUTTON */}
-                                {u.user_id === user.user_id ? (
-                                    <span
-                                        className="text-muted"
-                                        title="You can't delete yourself"
-                                        style={{ cursor: "not-allowed" }}
-                                    >
-                                        —
-                                    </span>
-                                ) : (
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => {
-                                            setUserToDelete(u);
-                                            setShowDeleteModal(true);
-                                        }}
-                                    >
-                                        Delete
-                                    </button>
-                                )}
-                            </td>
+                {/* Deselect All Button */}
+                {checkedUsers.length > 0 && (
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                            setCheckedUsers([]);
+                            setSelectAll(false);
+                        }}
+                    >
+                        Deselect All
+                    </button>
+                )}
+            </div>
 
-                            <td>{new Date(u.created_at).toLocaleString()}</td>
-                            <td>{new Date(u.updated_at).toLocaleString()}</td>
-                            <td>{u.role}</td>
-                            <td>{u.isactive ? "Active" : "Inactive"}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {/* Users Table */}
+            <DataTable
+                data={paginatedUsers}
+                enableCheckbox={true}
+                columns={[
+                    { key: "username", label: "User" },
+                    {
+                        key: "created_at",
+                        label: "Created At",
+                        format: (v) => new Date(v).toLocaleString()
+                    },
+                    {
+                        key: "updated_at",
+                        label: "Updated At",
+                        format: (v) => new Date(v).toLocaleString()
+                    },
+                    { key: "role", label: "Role" },
+                    {
+                        key: "isactive",
+                        label: "Status",
+                        format: (v) => (v ? "Active" : "Inactive")
+                    }
+                ]}
+                actions={[
+                    {
+                        label: "Edit",
+                        className: "btn-warning btn-sm",
+                        disabled: (u) => u.user_id === user.user_id,
+                        onClick: (u) => openEditModal(u)
+                    },
+                    {
+                        label: "Delete",
+                        className: "btn-danger btn-sm",
+                        disabled: (u) => u.user_id === user.user_id,
+                        onClick: (u) => {
+                            setDeleteMode("single");
+                            setUserToDelete(u);
+                            setShowDeleteModal(true);
+                        }
+                    }
+                ]}
+            />
 
             {/* Pagination Controls */}
             <Pagination
