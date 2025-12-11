@@ -193,10 +193,16 @@ export default function Users({ user, handleLogout }) {
                     <button
                         className="btn btn-danger me-2"
                         onClick={() => {
-                            // collect IDs of users on current page
-                            const ids = paginatedUsers.map(u => u.user_id);
+                            // IDs on current page but exclude current logged-in user
+                            const ids = paginatedUsers
+                                .map(u => u.user_id)
+                                .filter(id => id !== user.user_id);
 
-                            // open modal & set delete mode
+                            if (ids.length === 0) {
+                                alert("No deletable users on this page (you cannot delete yourself).");
+                                return;
+                            }
+
                             setCheckedUsers(ids);
                             setDeleteMode("bulk");
                             setShowDeleteModal(true);
