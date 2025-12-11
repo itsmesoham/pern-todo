@@ -15,7 +15,7 @@ export default function Users({ user, handleLogout }) {
 
     //Pagination states
     const [currentPage, setCurrentPage] = useState(1);
-    const usersPerPage = 7;
+    const usersPerPage = 6;
 
     //Edit (-> role & status change) states
     const [showModal, setShowModal] = useState(false);
@@ -107,8 +107,8 @@ export default function Users({ user, handleLogout }) {
 
     const openEditModal = (user) => {
         setSelectedUser(user);
-        setNewRole(user.role);        // UI only
-        setNewStatus(user.isactive);  // DB update
+        setNewRole(user.role);
+        setNewStatus(user.isactive);
         setShowModal(true);
     };
 
@@ -188,6 +188,24 @@ export default function Users({ user, handleLogout }) {
                     </button>
                 )}
 
+                {/* Delete This Page Users */}
+                {paginatedUsers.length > 0 && (
+                    <button
+                        className="btn btn-danger me-2"
+                        onClick={() => {
+                            // collect IDs of users on current page
+                            const ids = paginatedUsers.map(u => u.user_id);
+
+                            // open modal & set delete mode
+                            setCheckedUsers(ids);
+                            setDeleteMode("bulk");
+                            setShowDeleteModal(true);
+                        }}
+                    >
+                        Delete This Page Users
+                    </button>
+                )}
+
                 {/* Delete Selected Button */}
                 {checkedUsers.length > 0 && (
                     <button
@@ -218,7 +236,9 @@ export default function Users({ user, handleLogout }) {
             {/* Users Table */}
             <DataTable
                 data={paginatedUsers}
-                enableCheckbox={true}
+                enableCheckbox={false}
+                selectedRows={checkedUsers}
+                onSelectionChange={setCheckedUsers}
                 columns={[
                     { key: "username", label: "User" },
                     {
@@ -240,20 +260,23 @@ export default function Users({ user, handleLogout }) {
                 ]}
                 actions={[
                     {
+                        customElement: "checkbox",
+                        checked: (u) => checkedUsers.includes(u.user_id),
+                        disabled: (u) => u.user_id === user.user_id,
+                        onClick: (u, checked) => {
+                            if (checked) {
+                                setCheckedUsers(prev => [...prev, u.user_id]);
+                            } else {
+                                setCheckedUsers(prev => prev.filter(id => id !== u.user_id));
+                            }
+                        }
+                    },
+                    {
+                        customElement: "button",
                         label: "Edit",
                         className: "btn-warning btn-sm",
                         disabled: (u) => u.user_id === user.user_id,
                         onClick: (u) => openEditModal(u)
-                    },
-                    {
-                        label: "Delete",
-                        className: "btn-danger btn-sm",
-                        disabled: (u) => u.user_id === user.user_id,
-                        onClick: (u) => {
-                            setDeleteMode("single");
-                            setUserToDelete(u);
-                            setShowDeleteModal(true);
-                        }
                     }
                 ]}
             />
@@ -291,6 +314,7 @@ export default function Users({ user, handleLogout }) {
                                         value={newRole}
                                         onChange={(e) => setNewRole(e.target.value)}
                                     >
+                                        <option value="user">User</option>
                                         <option value="admin">Admin</option>
                                         <option value="manager">Manager</option>
                                         <option value="editor">Editor</option>
@@ -349,8 +373,7 @@ export default function Users({ user, handleLogout }) {
 
                                 <div className="modal-body">
                                     <p>
-                                        Are you sure you want to delete user{" "}
-                                        <strong>{userToDelete?.username}</strong>?
+                                        Are you sure you want to delete this/these user(s)?
                                     </p>
                                 </div>
 

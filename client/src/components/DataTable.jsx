@@ -1,25 +1,23 @@
-import React, { useState } from "react";
+import React from "react";
 
 export default function DataTable({
     data = [],
     columns = [],
     actions = [],
     enableCheckbox = false,
-    onSelectionChange = () => {},
+    selectedRows = [],
+    onSelectionChange = () => { },
 }) {
-    const [selectedRows, setSelectedRows] = useState([]);
-    const [selectAll, setSelectAll] = useState(false);
 
     const handleSelectAll = (checked) => {
-        setSelectAll(checked);
+        const currentPageIds = data.map(r => r.todo_id || r.user_id);
 
         if (checked) {
-            const allIds = data.map((row) => row.id || row.todo_id || row.user_id);
-            setSelectedRows(allIds);
-            onSelectionChange(allIds);
+            const merged = Array.from(new Set([...selectedRows, ...currentPageIds]));
+            onSelectionChange(merged);
         } else {
-            setSelectedRows([]);
-            onSelectionChange([]);
+            const remaining = selectedRows.filter(id => !currentPageIds.includes(id));
+            onSelectionChange(remaining);
         }
     };
 
@@ -30,12 +28,13 @@ export default function DataTable({
             updated = [...selectedRows, rowId];
         } else {
             updated = selectedRows.filter((id) => id !== rowId);
-            setSelectAll(false);
         }
 
-        setSelectedRows(updated);
         onSelectionChange(updated);
     };
+
+    const currentPageIds = data.map(r => r.todo_id || r.user_id);
+    const allSelectedThisPage = currentPageIds.every(id => selectedRows.includes(id));
 
     return (
         <table className="table table-bordered text-center mt-3">
@@ -45,7 +44,7 @@ export default function DataTable({
                         <th>
                             <input
                                 type="checkbox"
-                                checked={selectAll}
+                                checked={allSelectedThisPage}
                                 onChange={(e) => handleSelectAll(e.target.checked)}
                             />
                         </th>
@@ -95,19 +94,32 @@ export default function DataTable({
                                 {actions.length > 0 && (
                                     <td>
                                         {actions.map((action, idx) => {
-                                            const disabled =
-                                                action.disabled?.(row) ?? false;
+                                            const disabled = action.disabled?.(row) ?? false;
+                                            if (action.customElement == "button") {
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        className={`btn btn-sm mx-1 ${action.className || "btn-primary"}`}
+                                                        onClick={() => action.onClick(row)}
+                                                        disabled={disabled}
+                                                    >
+                                                        {action.label}
+                                                    </button>
+                                                );
+                                            }
 
-                                            return (
-                                                <button
-                                                    key={idx}
-                                                    className={`btn btn-sm mx-1 ${action.className || "btn-primary"}`}
-                                                    onClick={() => action.onClick(row)}
-                                                    disabled={disabled}
-                                                >
-                                                    {action.label}
-                                                </button>
-                                            );
+                                            else if (action.customElement === "checkbox") {
+                                                return (
+                                                    <input
+                                                        key={idx}
+                                                        type="checkbox"
+                                                        className="form-check-input mx-2"
+                                                        disabled={disabled}
+                                                        checked={action.checked?.(row) ?? false}
+                                                        onChange={(e) => action.onClick(row, e.target.checked)}
+                                                    />
+                                                );
+                                            }
                                         })}
                                     </td>
                                 )}

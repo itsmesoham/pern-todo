@@ -283,6 +283,7 @@ const ListTodos = ({ user }) => {
             <DataTable
                 data={currentTodos}
                 enableCheckbox={true}
+                selectedRows={checkedTodos}
                 onSelectionChange={(ids) => setCheckedTodos(ids)}
                 columns={[
                     { key: "description", label: "Description" },
@@ -302,6 +303,7 @@ const ListTodos = ({ user }) => {
                 ]}
                 actions={[
                     {
+                        customElement: "button",
                         label: "Edit",
                         className: "btn-warning btn-sm",
                         onClick: (todo) => {
@@ -310,6 +312,7 @@ const ListTodos = ({ user }) => {
                         }
                     },
                     {
+                        customElement: "button",
                         label: "Delete",
                         className: "btn-danger btn-sm",
                         onClick: (todo) => {
@@ -319,8 +322,9 @@ const ListTodos = ({ user }) => {
                         }
                     },
                     {
+                        customElement: "button",
                         label: "Download",
-                        className: "btn-light btn-sm",
+                        className: "btn-outline-primary btn-sm",
                         onClick: async (todo) => {
                             const response = await fetch("http://localhost:5000/todo-action", {
                                 method: "POST",
@@ -338,6 +342,7 @@ const ListTodos = ({ user }) => {
                         }
                     },
                     {
+                        customElement: "button",
                         label: "Email",
                         className: "btn-primary btn-sm",
                         onClick: (todo) => {
