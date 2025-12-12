@@ -2,8 +2,8 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const verify = require("./jwtAuth");
-const pool = require("./db");
+const verify = require("./middleware/jwtAuth");
+const pool = require("./config/db");
 require("dotenv").config();
 
 /* MIDDLEWARE */
@@ -16,13 +16,13 @@ app.use(cookieParser());
 app.use(express.json());
 
 /* AUTH ROUTES */
-app.use("/auth", require("./auth"));
+app.use("/auth", require("./controllers/auth"));
 
 /* TODO ACTION ROUTES */
-app.use("/todo-action", verify, require("./todoAction"));
+app.use("/todo-action", verify, require("./controllers/todoAction"));
 
 /* USERS PAGE ROUTE */
-app.use("/users", verify, require("./users"));
+app.use("/users", verify, require("./controllers/users"));
 
 /* CREATE TODO */
 app.post("/todos", verify, async (req, res) => {

@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
-const pool = require("./db");
-const sendGoogleEmail = require("./sendGoogleEmail");
+const pool = require("../config/db");
+const sendGoogleEmail = require("../controllers/sendGoogleEmail");
 
 // FETCH TODO FROM DB (Used in both download + email modes)
 async function getTodoData(todo_id) {

@@ -1,5 +1,5 @@
 const { google } = require("googleapis");
-const oauth2Client = require("./googleClient");
+const oauth2Client = require("../config/googleClient");
 
 function base64UrlEncode(str) {
     return Buffer.from(str)
