@@ -5,11 +5,20 @@ const pool = require("../config/db");
 router.get("/", async (req, res) => {
   try {
     const users = await pool.query(`
-        SELECT user_id, username, role, created_at, updated_at, isActive 
-        FROM users
-        WHERE role != 'superadmin'
-        ORDER BY user_id ASC;
-        `);
+      SELECT 
+        u.user_id,
+        u.username,
+        u.role_id,
+        r.role_name,
+        u.created_at,
+        u.updated_at,
+        u.isactive
+      FROM users u
+      JOIN roles r ON u.role_id = r.role_id
+      WHERE r.role_name != 'superadmin'
+      ORDER BY u.user_id ASC
+    `);
+
     res.json(users.rows);
   } catch (err) {
     console.error(err.message);
@@ -33,16 +42,16 @@ router.delete("/:id", async (req, res) => {
 router.put("/:id/role", async (req, res) => {
   try {
     const { id } = req.params;
-    const { role } = req.body;
+    const { role_id } = req.body;
 
     const updated = await pool.query(
       `
-            UPDATE users
-            SET role = $1, updated_at = NOW()
-            WHERE user_id = $2
-            RETURNING *
-            `,
-      [role.toLowerCase(), id]   // ensure lowercase roles
+      UPDATE users
+      SET role_id = $1, updated_at = NOW()
+      WHERE user_id = $2
+      RETURNING *
+      `,
+      [role_id, id]
     );
 
     res.json({ message: "Role updated", user: updated.rows[0] });

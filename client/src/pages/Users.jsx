@@ -20,7 +20,7 @@ export default function Users({ user, handleLogout }) {
     //Edit (-> role & status change) states
     const [showModal, setShowModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [newRole, setNewRole] = useState("");
+    const [newRoleId, setNewRoleId] = useState("");
     const [newStatus, setNewStatus] = useState("");
 
     //Delete modal states
@@ -74,6 +74,16 @@ export default function Users({ user, handleLogout }) {
     let startPage = Math.max(1, currentPage - pageWindow);
     let endPage = Math.min(totalPages, currentPage + pageWindow);
 
+    const roleMap = {
+        1: "superadmin",
+        2: "user",
+        3: "admin",
+        4: "manager",
+        5: "editor",
+        6: "viewer",
+        7: "guest"
+    };
+
     const deleteUser = async () => {
         try {
             let idsToDelete = [];
@@ -107,7 +117,7 @@ export default function Users({ user, handleLogout }) {
 
     const openEditModal = (user) => {
         setSelectedUser(user);
-        setNewRole(user.role);
+        setNewRoleId(user.role_id);
         setNewStatus(user.isactive);
         setShowModal(true);
     };
@@ -121,7 +131,7 @@ export default function Users({ user, handleLogout }) {
                 method: "PUT",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role: newRole })
+                body: JSON.stringify({ role_id: Number(newRoleId) })
             });
 
             // Update status (already exists)
@@ -136,7 +146,12 @@ export default function Users({ user, handleLogout }) {
             setUsers(prev =>
                 prev.map(u =>
                     u.user_id === selectedUser.user_id
-                        ? { ...u, role: newRole, isactive: newStatus }
+                        ? {
+                            ...u,
+                            role_id: newRoleId,
+                            role_name: roleMap[newRoleId],
+                            isactive: newStatus
+                        }
                         : u
                 )
             );
@@ -257,7 +272,7 @@ export default function Users({ user, handleLogout }) {
                         label: "Updated At",
                         format: (v) => new Date(v).toLocaleString()
                     },
-                    { key: "role", label: "Role" },
+                    { key: "role_name", label: "Role" },
                     {
                         key: "isactive",
                         label: "Status",
@@ -317,15 +332,15 @@ export default function Users({ user, handleLogout }) {
                                     <label className="form-label fw-bold">Role</label>
                                     <select
                                         className="form-select"
-                                        value={newRole}
-                                        onChange={(e) => setNewRole(e.target.value)}
+                                        value={newRoleId}
+                                        onChange={(e) => setNewRoleId(Number(e.target.value))}
                                     >
-                                        <option value="user">User</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="editor">Editor</option>
-                                        <option value="viewer">Viewer</option>
-                                        <option value="guest">Guest</option>
+                                        <option value={2}>User</option>
+                                        <option value={3}>Admin</option>
+                                        <option value={4}>Manager</option>
+                                        <option value={5}>Editor</option>
+                                        <option value={6}>Viewer</option>
+                                        <option value={7}>Guest</option>
                                     </select>
                                 </div>
 
