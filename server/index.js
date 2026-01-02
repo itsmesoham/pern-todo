@@ -4,6 +4,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const verify = require("./middleware/jwtAuth");
 const pool = require("./config/db");
+const hasPermission = require("./middleware/hasPermission");
 require("dotenv").config();
 
 /* MIDDLEWARE */
@@ -24,25 +25,27 @@ app.use("/todo-action", verify, require("./controllers/todoAction"));
 /* USERS PAGE ROUTE */
 app.use("/users", verify, require("./controllers/users"));
 
+app.use("/rbac", verify, require("./controllers/permissions"));
+
 /* CREATE TODO */
 app.post("/todos", verify, async (req, res) => {
     try {
-        const { description, amount, user_id } = req.body;
+        const { description, amount } = req.body;
+        const user_id = req.user.user_id;
 
         if (!description.trim())
             return res.status(400).json({ error: "Description cannot be empty" });
 
-        if (amount === undefined || amount === null || isNaN(amount))
+        if (amount === undefined || isNaN(amount))
             return res.status(400).json({ error: "Amount must be a number" });
 
-        if (!user_id)
-            return res.status(400).json({ error: "User ID is required" });
-
         const newTodo = await pool.query(
-            `INSERT INTO todo 
-            (description, amount, user_id, created_by, updated_by, created_at, updated_at)
-            VALUES ($1, $2, $3, $3, $3, NOW(), NOW())
-            RETURNING *`,
+            `
+      INSERT INTO todo 
+      (description, amount, user_id, created_by, updated_by, created_at, updated_at)
+      VALUES ($1, $2, $3, $3, $3, NOW(), NOW())
+      RETURNING *
+      `,
             [description.trim(), amount, user_id]
         );
 
@@ -56,39 +59,38 @@ app.post("/todos", verify, async (req, res) => {
 /* GET TODOS */
 app.get("/todos", verify, async (req, res) => {
     try {
-        const { user_id, role } = req.query;
+        const user_id = req.user.user_id;
+        const role = req.user.role_name;
 
         let query;
         let params = [];
 
         if (role === "superadmin") {
             query = `
-                SELECT 
-                    t.todo_id, t.description, t.amount,
-                    t.created_at, t.updated_at,
-                    t.created_by, t.updated_by,
-                    u1.username AS created_by_user,
-                    u2.username AS updated_by_user
-                FROM todo t
-                JOIN users u1 ON t.created_by = u1.user_id
-                LEFT JOIN users u2 ON t.updated_by = u2.user_id
-                WHERE t.is_deleted = FALSE
-                ORDER BY t.updated_at DESC
-            `;
+        SELECT 
+          t.todo_id, t.description, t.amount,
+          t.created_at, t.updated_at,
+          u1.username AS created_by_user,
+          u2.username AS updated_by_user
+        FROM todo t
+        JOIN users u1 ON t.created_by = u1.user_id
+        LEFT JOIN users u2 ON t.updated_by = u2.user_id
+        WHERE t.is_deleted = FALSE
+        ORDER BY t.updated_at DESC
+      `;
         } else {
             query = `
-                SELECT 
-                    t.todo_id, t.description, t.amount,
-                    t.created_at, t.updated_at,
-                    t.created_by, t.updated_by,
-                    u1.username AS created_by_user,
-                    u2.username AS updated_by_user
-                FROM todo t
-                JOIN users u1 ON t.created_by = u1.user_id
-                LEFT JOIN users u2 ON t.updated_by = u2.user_id
-                WHERE t.user_id = $1 AND t.is_deleted = FALSE
-                ORDER BY t.updated_at DESC
-            `;
+        SELECT 
+          t.todo_id, t.description, t.amount,
+          t.created_at, t.updated_at,
+          u1.username AS created_by_user,
+          u2.username AS updated_by_user
+        FROM todo t
+        JOIN users u1 ON t.created_by = u1.user_id
+        LEFT JOIN users u2 ON t.updated_by = u2.user_id
+        WHERE t.user_id = $1 AND t.is_deleted = FALSE
+        ORDER BY t.updated_at DESC
+      `;
             params = [user_id];
         }
 
@@ -120,7 +122,7 @@ app.put("/todos/:id", verify, async (req, res) => {
         const { description, amount } = req.body;
 
         const user_id = req.user.user_id;
-        const role = req.user.role;
+        const role = req.user.role_name;
 
         if (!description.trim())
             return res.status(400).json({ error: "Description cannot be empty" });
@@ -162,7 +164,7 @@ app.delete("/todos/:id", verify, async (req, res) => {
     try {
         const { id } = req.params;
         const user_id = req.user.user_id;
-        const role = req.user.role;
+        const role = req.user.role_name;
 
         let deleted;
 
@@ -197,7 +199,11 @@ app.delete("/todos/:id", verify, async (req, res) => {
 });
 
 /* USER STATUS CHANGE */
-app.put("/users/:id/status", async (req, res) => {
+app.put(
+    "/users/:id/status",
+    verify,
+    hasPermission("UPDATE_USER_STATUS"),
+    async (req, res) => {
     const { id } = req.params;
     const { isactive } = req.body;
 

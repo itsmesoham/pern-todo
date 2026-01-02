@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const pool = require("../config/db");
+const hasPermission = require("../middleware/hasPermission");
 
 // GET USERS
 router.get("/", async (req, res) => {

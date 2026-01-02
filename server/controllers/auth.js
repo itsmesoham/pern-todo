@@ -9,22 +9,25 @@ require("dotenv").config();
 // Register
 router.post("/register", async (req, res) => {
     try {
-        const { username, password, role } = req.body;
+        const { username, password, role_id } = req.body;
 
         const userExists = await pool.query(
-            "SELECT * FROM users WHERE username = $1",
+            "SELECT 1 FROM users WHERE username = $1",
             [username]
         );
 
         if (userExists.rows.length > 0)
             return res.status(400).json({ error: "User already exists" });
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = await pool.query(
-            "INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *",
-            [username, hashedPassword, role || "user"]
+            `
+      INSERT INTO users (username, password, role_id)
+      VALUES ($1, $2, $3)
+      RETURNING user_id, username, role_id
+      `,
+            [username, hashedPassword, role_id]
         );
 
         res.json(newUser.rows[0]);
@@ -40,7 +43,17 @@ router.post("/login", async (req, res) => {
         const { username, password } = req.body;
 
         const result = await pool.query(
-            "SELECT * FROM users WHERE username = $1",
+            `
+      SELECT 
+        u.user_id,
+        u.username,
+        u.password,
+        u.isactive,
+        r.role_name
+      FROM users u
+      JOIN roles r ON u.role_id = r.role_id
+      WHERE u.username = $1
+      `,
             [username]
         );
 
@@ -49,29 +62,21 @@ router.post("/login", async (req, res) => {
 
         const user = result.rows[0];
 
-        // FIX: Normalize isactive properly
-        const isActive =
-            user.isactive === true ||           // boolean true
-            user.isactive === "true" ||         // string "true"
-            user.isactive === "t";              // postgres shorthand
-
-        // Block inactive users
-        if (!isActive) {
+        if (!user.isactive)
             return res.status(403).json({
                 error: "Your account is inactive. Contact admin."
             });
-        }
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid)
             return res.status(400).json({ error: "Invalid username or password" });
 
-        // Create JWT
+        // ✅ JWT WITH role_name
         const token = jwt.sign(
             {
                 user_id: user.user_id,
                 username: user.username,
-                role: user.role
+                role_name: user.role_name
             },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
@@ -83,7 +88,14 @@ router.post("/login", async (req, res) => {
             secure: false
         });
 
-        res.json({ message: "Logged in", user });
+        res.json({
+            message: "Logged in",
+            user: {
+                user_id: user.user_id,
+                username: user.username,
+                role_name: user.role_name
+            }
+        });
 
     } catch (err) {
         console.error(err);
@@ -93,11 +105,11 @@ router.post("/login", async (req, res) => {
 
 // Check login status
 router.get("/me", jwtAuth, (req, res) => {
-    res.json({
-        user_id: req.user.user_id,
-        username: req.user.username,
-        role: req.user.role
-    });
+  res.json({
+    user_id: req.user.user_id,
+    username: req.user.username,
+    role_name: req.user.role_name
+  });
 });
 
 module.exports = router;
